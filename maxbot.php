@@ -323,6 +323,7 @@ function chat_charge_extra($k,$reply){ global $ADMIN_FREE; $extra=(max(1,intval(
 
 /* ---------- VK ---------- */
 function vk_call_t($token,$m,$p=[]){ $p['access_token']=$token; $p['v']='5.131'; $ch=curl_init('https://api.vk.com/method/'.$m.'?'.http_build_query($p)); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>30,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_IPRESOLVE=>CURL_IPRESOLVE_V4]); $r=curl_exec($ch); curl_close($ch); return json_decode($r,true); }
+
 function vk_album_id(){
   global $CFG;
   $f=STOR.'/vk_album.txt'; $id=trim((string)@file_get_contents($f));
@@ -333,6 +334,20 @@ function vk_album_id(){
   if($aid!==''){ @file_put_contents($f,$aid); return $aid; }
   mlog('vk createAlbum: '.mb_substr((string)json_encode($r,JSON_UNESCAPED_UNICODE),0,200));
   return '';
+}
+
+function vk_upload_album($path){
+  global $CFG;
+  $gid=abs(intval($CFG['vk_owner']??0)); if(!$gid) return '';
+  $aid=vk_album_id(); if($aid==='') return '';
+  $r=vk_call_t($CFG['vk_token'],'photos.getUploadServer',['album_id'=>$aid,'group_id'=>$gid]);
+  $url=$r['response']['upload_url']??null; if(!$url){ mlog('vk album server: '.mb_substr((string)json_encode($r,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
+  $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_TIMEOUT=>90,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_POSTFIELDS=>['file1'=>new CURLFile($path)]]);
+  $up=json_decode((string)curl_exec($ch),true); curl_close($ch);
+  if(!isset($up['server'])){ mlog('vk album upload: '.mb_substr((string)json_encode($up,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
+  $s=vk_call_t($CFG['vk_token'],'photos.save',['server'=>$up['server'],'photos_list'=>$up['photos_list']??'','hash'=>$up['hash']??'','group_id'=>$gid]);
+  $ph=$s['response'][0]??null; if(!$ph){ mlog('vk album save: '.mb_substr((string)json_encode($s,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
+  return 'photo'.$ph['owner_id'].'_'.$ph['id'];
 }
 function vk_upload_album($path){
   global $CFG;
