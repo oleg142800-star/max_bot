@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Отчёт — LifeOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f5;--bg-grad:radial-gradient(1100px 520px at 72% -12%,rgba(106,141,255,.12),transparent 60%);--panel:#fff;--panel-grad:linear-gradient(180deg,#fff,#fafbfd);--panel2:#f2f4f7;--text:#1f2328;--text2:#5d646d;--text3:#8a8f98;--border:rgba(20,30,60,.1);--accent:#5e6ad2;--ok:#22a06b;--warn:#f59e0b;--bad:#dc2626;--shadow:0 4px 14px rgba(30,40,80,.1);color-scheme:light}
+html[data-theme='dark']{--bg:#08090b;--bg-grad:radial-gradient(1100px 520px at 72% -12%,rgba(94,106,210,.17),transparent 60%);--panel:#0f1013;--panel-grad:linear-gradient(180deg,#101116,#0c0d11);--panel2:#16171c;--text:#f7f8f8;--text2:#a0a5ad;--text3:#6b7078;--border:rgba(255,255,255,.1);--shadow:0 4px 16px rgba(0,0,0,.5);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.5;color:var(--text);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;padding:16px}
+.wrap{max-width:960px;margin:0 auto}
+a.back{color:var(--accent);text-decoration:none;font-weight:800;font-size:13px;font-family:'Unbounded'}
+h1{font-size:20px;margin:12px 0 14px;font-family:'Unbounded';font-weight:700}
+.card{background:var(--panel-grad);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.6)}
+html[data-theme='dark'] .card{box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.05)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{padding:9px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;cursor:pointer;font-size:13px;font-weight:700}
+button.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+button.small{padding:5px 10px;font-size:12px}
+button.ok{background:linear-gradient(135deg,#22a06b,#14b8a6)}
+button.bad{background:linear-gradient(135deg,#dc2626,#ef4444)}
+.hint{font-size:12px;color:var(--text3);margin-top:6px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;min-width:110px;flex:1}
+.cv{font-weight:800;font-size:17px;font-family:'Unbounded'}
+.ct{font-size:11px;color:var(--text3)}
+#totals{display:flex;gap:8px;flex-wrap:wrap}
+details.date{border:1px solid var(--border);border-radius:12px;background:var(--panel);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+details.date summary{cursor:pointer;padding:11px 14px;font-weight:800;background:var(--panel2);list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:center}
+details.date summary::-webkit-details-marker{display:none}
+.logline{padding:4px 0;border-bottom:1px dashed var(--border);font-size:12px;color:var(--text2)}
+.stat{font-size:13px}
+.uid{font-size:11px;color:var(--text3);font-weight:400}
+.blocked-tag{color:var(--bad);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top">
+ <a class="back" href="index.html">← На главную</a>
+ <button id="themeBtn" class="ghost small">🌙</button>
+</div>
+<h1>📊 Отчёт и управление клиентами</h1>
+<div class="card">
+ <div id="totals"></div>
+ <p class="hint" id="rates"></p>
+ <p class="hint">Видна только после входа. Автообновление — 60 сек. <button id="refBtn" class="ghost small">🔄 Обновить</button></p>
+</div>
+<div id="usersBox"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+document.documentElement.setAttribute('data-theme',store.get('gantt_theme')||'light');
+$('themeBtn').onclick=()=>{const nx=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+ document.documentElement.setAttribute('data-theme',nx);store.set('gantt_theme',nx);$('themeBtn').textContent=nx==='dark'?'☀️':''};
+$('themeBtn').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';
+const MO=new Date().toISOString().slice(0,7);
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function chip(t,v){return '<div class="chip"><span class="cv">'+v+'</span><span class="ct">'+t+'</span></div>'}
+async function post(a,body){const r=await fetch('api.php?action='+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return await r.json();}
+async function load(){
+ try{
+  const r=await fetch('api.php?action=admin_stats');
+  if(r.status===401){ location.href='index.html'; return; }
+  render(await r.json());
+ }catch(e){ console.error(e); }
+}
+function render(d){
+ const users=Object.entries(d.users||{});
+ const rates=d.rates||{};
+ let tp=0,ti=0,tcost=0,tok=0,tbal=0,tspend=0;
+ users.forEach(([id,u])=>{tp+=u.posts||0;ti+=u.images||0;tcost+=Number(u.cost||0);tok+=(u.tokens_in||0)+(u.tokens_out||0);tbal+=Number(u.balance||0);tspend+=Number((u.m_spend||{})[MO]||0);});
+ $('totals').innerHTML=
+  chip('👥 Клиентов',users.length)+
+  chip('💰 Балансы клиентов',tbal.toFixed(0)+' ₽')+
+  chip('📈 Съели за месяц',tspend.toFixed(0)+' ₽')+
+  chip('📝 Постов',tp)+
+  chip('🖼 Картинок',ti)+
+  chip('🪙 Токенов',tok.toLocaleString('ru-RU'))+
+  chip('💸 Тебе стоило',tcost.toFixed(2)+' ₽');
+ $('rates').textContent='Цены для клиентов: текст '+(d.prices?.text??10)+' ₽ · картинка '+(d.prices?.img??10)+' ₽ · чат '+(d.prices?.chat1k??3)+' ₽/1000. Старт: '+(d.trial??30)+' ₽. Твоя себестоимость: '+(rates.in??0)+'/'+(rates.out??0)+' ₽ за 1К токенов, '+(rates.img??0)+' ₽/картинка.';
+ $('usersBox').innerHTML=users.length?users.map(([id,u],i)=>userCard(id,u,i+1)).join(''):
+  '<div class="card"><p class="hint">Пока никого нет. Дай ссылку на бота другу — пусть нажмёт /start.</p></div>';
+ bind();
+}
+function userCard(id,u,n){
+ const mo=(u.m_spend||{})[MO]||0;
+ const vk=u.vk_token?'✅ VK':'⛔ VK';
+ const bl=!!u.blocked;
+ return '<details class="date" open><summary><span>'+n+'. '+(bl?'<span class="blocked-tag">⛔</span> ':'')+'👤 '+esc(u.name||id)+' <span class="uid">'+id+'</span></span><span style="color:var(--warn)">💰 '+Number(u.balance||0).toFixed(2)+' ₽</span></summary>'+
+ '<div style="padding:12px 14px">'+
+ '<div class="row stat">'+
+ '<span>📅 '+esc(u.reg||'—')+'</span>'+
+ '<span>📈 за месяц: <b>'+Number(mo).toFixed(2)+' ₽</b></span>'+
+ '<span>💸 тебе стоило: <b>'+Number(u.cost||0).toFixed(2)+' ₽</b></span>'+
+ '<span>📝 '+(u.posts||0)+' · 🖼 '+(u.images||0)+'</span>'+
+ '<span>🪙 '+(u.tokens_in||0)+'+'+(u.tokens_out||0)+'</span>'+
+ '<span>'+vk+'</span>'+
+ '</div>'+
+ '<div class="row" style="margin-top:10px">'+
+ '<button class="small '+(bl?'ok':'bad')+'" data-bl="'+id+'" data-cur="'+(bl?1:0)+'">'+(bl?'✅ Разблокировать':'⛔ Заблокировать')+'</button>'+
+ '<button class="small ghost" data-add="'+id+'">💳 Пополнить</button>'+
+ '</div>'+
+ '<div style="margin-top:10px">'+
+ ((u.log&&u.log.length)?u.log.map(l=>'<div class="logline">'+esc(l)+'</div>').join(''):'<span class="hint">Действий пока нет.</span>')+
+ '</div></div></details>';
+}
+function bind(){
+ document.querySelectorAll('[data-bl]').forEach(b=>b.onclick=async()=>{
+  await post('admin_block',{id:b.dataset.bl,blocked:b.dataset.cur==='1'?0:1});
+  load();
+ });
+ document.querySelectorAll('[data-add]').forEach(b=>b.onclick=async()=>{
+  const s=prompt('Сколько ₽ начислить?','100'); if(s===null)return;
+  const sum=parseInt(s,10)||0; if(!sum)return;
+  await post('admin_add',{id:b.dataset.add,sum:sum});
+  load();
+ });
+}
+$('refBtn').onclick=load;
+load();
+setInterval(load,60000);
+</script>
+</body>
+</html>

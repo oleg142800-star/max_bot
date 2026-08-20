@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LifeOS — личный кабинет</title>
+<style>
+:root{--bg:#eef1f5;--bg-grad:radial-gradient(1100px 520px at 72% -12%,rgba(106,141,255,.12),transparent 60%);--panel:#fff;--panel-grad:linear-gradient(180deg,#fff 0%,#fafbfd 100%);--panel-2:#f2f4f7;--field:#fff;--text:#1f2328;--text-2:#5d646d;--text-3:#8a8f98;--border:rgba(20,30,60,.10);--border-2:rgba(20,30,60,.18);--accent:#5e6ad2;--accent-2:#8a6eff;--today:#ff5c77;--ok:#22a06b;--warn:#f59e0b;--bad:#dc2626;--glass:rgba(255,255,255,.75);--shadow:0 4px 14px rgba(30,40,80,.10);--card-light:inset 0 1px 0 rgba(255,255,255,.9);--inset:inset 0 1px 3px rgba(20,30,60,.08);color-scheme:light}
+html[data-theme='dark']{--bg:#08090b;--bg-grad:radial-gradient(1100px 520px at 72% -12%,rgba(94,106,210,.17),transparent 60%);--panel:#0f1013;--panel-grad:linear-gradient(180deg,#101116 0%,#0c0d11 100%);--panel-2:#16171c;--field:#141519;--text:#f7f8f8;--text-2:#a0a5ad;--text-3:#6b7078;--border:rgba(255,255,255,.10);--border-2:rgba(255,255,255,.2);--glass:rgba(15,16,19,.72);--shadow:0 4px 16px rgba(0,0,0,.5);--card-light:inset 0 1px 0 rgba(255,255,255,.05);--inset:inset 0 1px 3px rgba(0,0,0,.5);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter','Manrope','SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.55;color:var(--text);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;min-height:100vh;-webkit-font-smoothing:antialiased}
+button{padding:9px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 2px 8px rgba(106,141,255,.28),inset 0 1px 0 rgba(255,255,255,.25);transition:filter .2s,transform .2s}
+button:hover{filter:brightness(1.07);transform:translateY(-1px)}
+button:disabled{opacity:.6;cursor:wait;transform:none}
+button.ghost{background:var(--panel-2);color:var(--text);border:1px solid var(--border);box-shadow:var(--inset)}
+button.ghost:hover{filter:none;border-color:var(--border-2)}
+input,textarea,select{padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--field);color:var(--text);font-family:inherit;box-shadow:var(--inset);transition:border-color .2s,box-shadow .2s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(94,106,210,.22)}
+input[type=file]{box-shadow:none;background:var(--panel-2);padding:8px}
+[hidden]{display:none!important}
+.err{color:var(--bad);font-size:14px;min-height:20px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 20px;position:sticky;top:0;z-index:20;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.h-left{display:flex;align-items:center;gap:12px}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;cursor:pointer;background-size:cover;background-position:center;flex:none;box-shadow:0 2px 8px rgba(106,141,255,.35),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .2s}
+.avatar:hover{transform:scale(1.05)}
+.greet{font-weight:700;font-size:16px}
+.clock-date{font-size:12px;color:var(--text-2);text-transform:capitalize}
+.h-right{display:flex;align-items:center;gap:10px}
+.clock{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+main{padding:16px 20px;display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--panel-grad);border:1px solid var(--border);border-radius:12px;padding:16px 16px 16px 28px;box-shadow:var(--shadow),var(--card-light);transition:box-shadow .2s,transform .2s;position:relative}
+.card:hover{box-shadow:0 8px 22px rgba(30,40,80,.14),var(--card-light);transform:translateY(-1px)}
+html[data-theme='dark'] .card:hover{box-shadow:0 8px 24px rgba(0,0,0,.6),var(--card-light)}
+.card.dragging{opacity:.5;outline:2px dashed var(--accent);outline-offset:-2px}
+.card.drop-target{box-shadow:0 0 0 2px var(--accent),var(--shadow);transform:translateY(-2px)}
+.w{grid-column:span 4}.w6{grid-column:span 6}.w12{grid-column:span 12}
+@media(max-width:1100px){.w{grid-column:span 6}}
+@media(max-width:760px){.w,.w6{grid-column:span 12}}
+.gripper{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:14px;height:28px;cursor:grab;color:var(--text-3);opacity:.25;transition:opacity .2s,color .2s;font-size:11px;letter-spacing:-3px;text-align:center;user-select:none;touch-action:none;display:flex;align-items:center;justify-content:center;line-height:.9;font-weight:700}
+.gripper:hover{opacity:.7;color:var(--accent)}
+.gripper:active{cursor:grabbing}
+.card h2{margin:0 0 12px;font-size:16px;font-weight:700;letter-spacing:-.01em;position:relative;padding-bottom:8px;display:flex;align-items:center;gap:8px}
+.card h2::after{content:'';position:absolute;left:0;bottom:0;width:32px;height:2.5px;border-radius:2px;background:linear-gradient(90deg,#6A8DFF,#8A6EFF);box-shadow:0 1px 4px rgba(106,141,255,.5)}
+.card h2 .hbtn{margin-left:auto;padding:4px 10px;font-size:13px}
+.sub{color:var(--text-3);font-size:13px;font-weight:400}
+.big-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:10px;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(106,141,255,.35),inset 0 1px 0 rgba(255,255,255,.35);transition:filter .2s,transform .2s}
+.big-btn:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.big-btn .ic{color:#fff;width:22px;height:22px;filter:none}
+.ic{width:20px;height:20px;color:var(--accent);flex:none}
+.lbl{font-size:12px;color:var(--text-3);text-transform:uppercase;margin:10px 0 4px;letter-spacing:.5px;font-weight:600}
+.editable{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;min-height:40px;font-size:14px;outline:none;box-shadow:var(--inset);transition:border-color .2s,background .2s}
+.editable:focus{border-color:var(--accent);background:var(--field)}
+.mini{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}.mini input{flex:1;min-width:100px}
+.wide{width:100%;margin-top:8px}
+.car-block,.cc-block{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--panel-2)}
+.car-head,.cc-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.car-head .hdel,.cc-head .hdel{margin-left:auto}
+.car-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.car-grid label,.cc-block>label{font-size:11px;color:var(--text-3);display:flex;flex-direction:column;gap:3px}
+.car-grid input,.cc-block>label input{width:100%}
+.cc-logo{width:26px;height:26px;border-radius:7px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 3px rgba(0,0,0,.3)}
+.lg-alfa{background:#EF3124}.lg-sber{background:linear-gradient(180deg,#21A038,#178F2C)}.lg-ozon{background:#005BFF}
+.cards-total{font-size:15px;font-weight:700;margin-bottom:10px}
+.clog{margin-top:6px;max-height:90px;overflow:auto}
+.clog-item{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--text-2);padding:2px 0;border-bottom:1px dashed var(--border)}
+.clog-item i{font-style:normal;color:var(--text-3);flex:none}
+.bday{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.bday:last-child{border:none}
+.b-ava{width:36px;height:36px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.4)}
+.b-info{flex:1;min-width:0}.b-name{font-weight:600}
+.b-day{margin-left:auto;text-align:right;font-size:12px;color:var(--text-2);flex:none}.b-day b{display:block;color:var(--text);font-size:13px}
+.b-btns{display:flex;gap:4px;flex:none}
+.b-btns button{background:transparent;box-shadow:none;padding:0 5px;font-size:12px}
+.b-btns button:hover{transform:none}
+.b-edit{color:var(--accent)}.b-del{color:var(--bad);opacity:.6}
+.wish{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:14px;cursor:pointer}
+.wish .box{width:18px;height:18px;border:2px solid var(--border-2);border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;box-shadow:var(--inset);transition:background .2s,border-color .2s}
+.wish.done .box{background:var(--ok);border-color:var(--ok);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.wish.done span{text-decoration:line-through;color:var(--text-3)}
+.wish .del{margin-left:auto;background:transparent;color:var(--bad);padding:0 4px;visibility:hidden;box-shadow:none}
+.wish:hover .del{visibility:visible}
+table.hab{width:100%;border-collapse:collapse;font-size:13px}
+table.hab td,table.hab th{padding:4px;text-align:center}
+table.hab td:first-child,table.hab th:first-child{text-align:left}
+.hab-name{cursor:text;border-bottom:1px dashed transparent}
+.hab-name:hover{border-bottom-color:var(--accent)}
+.hdel{background:transparent;color:var(--bad);box-shadow:none;padding:0 4px;font-size:11px;opacity:.5}
+.hdel:hover{opacity:1;transform:none}
+.hab-cell{width:24px;height:24px;border-radius:6px;background:var(--panel-2);border:1px solid var(--border);box-shadow:var(--inset);cursor:pointer;display:inline-block;transition:background .15s,transform .15s}
+.hab-cell:hover{transform:scale(1.1)}
+.hab-cell.on{background:var(--ok);border-color:var(--ok);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 4px rgba(34,160,107,.4)}
+#habChart{display:flex;align-items:flex-end;gap:2px;height:54px;margin-top:6px}
+#habChart .hc{flex:1;background:linear-gradient(180deg,#6A8DFF,#8A6EFF);border-radius:3px 0 0;min-height:2px;opacity:.85;transition:height .3s}
+#habChart .hc.empty{background:var(--panel-2)}
+#habChart .hc.today{outline:2px solid var(--today)}
+.rings{display:flex;gap:14px;flex-wrap:wrap}
+.ring{position:relative;width:76px;text-align:center;cursor:pointer}
+.ring svg{transform:rotate(-90deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,.18));width:76px;height:76px}
+.ring circle{fill:none;stroke-width:8}
+.ring .bgc{stroke:var(--panel-2)}
+.ring .fgc{stroke-linecap:round;transition:stroke-dashoffset .3s}
+.ring b{position:absolute;left:0;right:0;top:27px;font-size:13px}
+.ring .rn{font-size:11px;color:var(--text-2);display:block;margin-top:2px}
+.pomo{font-size:46px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;margin:4px 0;letter-spacing:-.02em;text-shadow:0 2px 8px rgba(94,106,210,.25)}
+.pomo.flash{animation:fl 1s 3}@keyframes fl{50%{color:var(--today)}}
+.row-c{display:flex;gap:8px;justify-content:center}
+.range{width:100%;accent-color:var(--accent);box-shadow:none;cursor:pointer}
+.energy-lbl{font-size:26px;text-align:center;margin-top:4px}
+#energyChart svg{width:100%;height:64px;display:block}
+.note-item{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);box-shadow:var(--inset);margin-top:6px;font-size:14px}
+.note-item .del{margin-left:auto;background:transparent;color:var(--bad);box-shadow:none;visibility:hidden;flex:none}
+.note-item:hover .del{visibility:visible}
+.quote{font-size:20px;font-weight:700;font-family:'Segoe Script','Bradley Hand','Marker Felt','Comic Sans MS',cursive;line-height:1.5;min-height:70px;margin:0 0 10px;color:var(--text)}
+.fin-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:4px 0}
+.fin-row button{padding:3px 9px;font-size:12px;background:var(--panel-2);color:var(--text-2);border:1px solid var(--border);box-shadow:var(--inset);border-radius:6px}
+.pbar{height:8px;background:var(--panel-2);border-radius:6px;overflow:hidden;margin:3px 0 10px;box-shadow:var(--inset);border:1px solid var(--border)}
+.pbar div{height:100%;border-radius:6px;transition:width .3s;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.hint-s{font-size:12px;color:var(--text-3);margin:6px 0 0}
+.dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.dots span{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);box-shadow:0 1px 3px rgba(106,141,255,.5);transition:opacity .4s,transform .4s,background .4s}
+.dots span.off{opacity:.15;transform:scale(.6);background:var(--panel-2);box-shadow:none}
+.max-status{font-size:12px;margin-top:6px;color:var(--text-2)}
+.max-status.ok{color:var(--ok)}.max-status.bad{color:var(--bad)}
+.ai-chat{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto;margin-bottom:8px}
+.ai-msg{padding:8px 11px;border-radius:10px;background:var(--panel-2);font-size:14px;white-space:pre-wrap;max-width:95%}
+.ai-msg.user{background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;align-self:flex-end}
+.ai-msg.bot{align-self:flex-start}
+.doc-item{display:flex;gap:6px;align-items:center;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);margin-top:6px;font-size:14px}
+.doc-item span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-item button,.doc-item a{background:transparent;box-shadow:none;padding:0 4px;font-size:13px;color:var(--text-2);text-decoration:none}
+.doc-item .d-del{color:var(--bad)}
+.modal-wrap{position:fixed;inset:0;background:rgba(8,9,11,.45);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;width:360px;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+.modal h3{margin:0 0 10px;font-size:17px;font-weight:800;color:var(--accent)}
+.modal input{width:100%}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.modal-btns button{flex:1}
+</style>
+</head>
+<body>
+<!-- 🔒 ЗАМОК LifeOS (встроенный, с 2FA и индикацией) -->
+<div id="gateLock" style="position:fixed;inset:0;z-index:99999;background:#0b0d12;display:flex;align-items:center;justify-content:center">
+ <div style="background:#141824;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:28px 26px;width:320px;text-align:center;color:#f7f8fa;font-family:system-ui,sans-serif">
+  <div style="font-size:34px">🔐</div>
+  <div style="font-weight:800;margin:8px 0 4px">LifeOS — вход только для Олега</div>
+  <div style="font-size:12px;color:#8a93a3;margin-bottom:14px">Посторонним вход воспрещён</div>
+  <input id="gatePass" type="password" placeholder="Пароль" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0e1118;color:#fff;font-size:14px;outline:none">
+  <button id="gateBtn" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;font-weight:800;cursor:pointer">Войти</button>
+  <div id="gateErr" style="color:#ff7b7b;font-size:12px;margin-top:8px;min-height:16px"></div>
+ </div>
+</div>
+<script>
+(function(){
+  var g=document.getElementById('gateLock');
+  var pass=document.getElementById('gatePass');
+  var btn=document.getElementById('gateBtn');
+  var err=document.getElementById('gateErr');
+  var step='pass';
+  function busy(b){ btn.disabled=b; btn.textContent=b?'⏳ Проверяю…':(step==='code'?'Подтвердить':'Войти'); }
+  fetch('api.php?action=ping').then(function(r){return r.json()}).then(function(p){ if(p&&p.auth){ g.remove(); } }).catch(function(){ err.textContent='⚠️ Сервер недоступен — обнови страницу'; });
+  function doLogin(){
+    if(btn.disabled) return;
+    err.textContent=''; busy(true);
+    var body=(step==='pass')?{password:pass.value}:{code:pass.value};
+    fetch('api.php?action='+((step==='pass')?'login':'login2'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(p){
+      busy(false);
+      if(p&&p.twofa){ step='code'; pass.value=''; pass.placeholder='Код из Telegram (6 цифр)'; err.style.color='#7bd88a'; err.textContent='📨 Код отправлен в Telegram — введи его ниже'; pass.focus(); return; }
+      if(p&&p.ok){ location.reload(); return; }
+      err.style.color='#ff7b7b';
+      err.textContent=(p&&p.error==='wait')?'Много попыток — подожди немного':(p&&p.hint)?p.hint:'Неверный пароль или код';
+    }).catch(function(){ busy(false); err.style.color='#ff7b7b'; err.textContent='Ошибка соединения (сервер перегружен?) — попробуй ещё раз'; });
+  }
+  btn.onclick=doLogin;
+  pass.addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
+})();
+</script>
+
+<div id="appScreen" hidden>
+<header>
+  <div class="h-left">
+    <div class="avatar" id="avatarBox" title="Сменить фото"></div>
+    <input type="file" id="avatarFile" accept="image/*" hidden>
+    <div><div class="greet" id="greet"></div><div class="clock-date" id="clockDate"></div></div>
+  </div>
+  <div class="h-right">
+    <div class="clock" id="clockTime"></div>
+    <button id="srvBtn" class="ghost">🔑 Войти</button>
+    <button id="logoutBtn" class="ghost" hidden>🚪 Выйти</button>
+    <button id="themeBtn" class="ghost" title="Переключить тему">🌙</button>
+  </div>
+</header>
+<main id="cardsGrid">
+  <section class="card w12" data-card="gantt"><span class="gripper">⋮⋮</span><a class="big-btn" href="gantt.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="6" x2="13" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="5" y1="18" x2="15" y2="18"/></svg>Открыть диаграмму Ганта →</a></section>
+  <section class="card w12" data-card="smm"><span class="gripper">⋮⋮</span>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="big-btn" style="flex:1;min-width:220px" href="posts.html">📣 Открыть SMM‑центр (посты) →</a>
+      <a class="big-btn" style="flex:1;min-width:220px;background:linear-gradient(135deg,#22a06b,#14b8a6)" href="admin.html">📊 Отчёт по клиентам →</a>
+    </div>
+  </section>
+  <section class="card w6" data-card="mission"><span class="gripper">⋮</span><h2> Миссия и цели</h2>
+    <div class="lbl">Миссия</div><div id="mission" class="editable" contenteditable="true"></div>
+    <div class="lbl">Цель</div><div id="goal" class="editable" contenteditable="true"></div>
+    <div class="lbl">Цель на год</div><div id="goalYear" class="editable" contenteditable="true"></div>
+    <div class="lbl">Цель на месяц</div><div id="goalMonth" class="editable" contenteditable="true"></div>
+    <div class="lbl">⏳ Минута — точка за секундой</div>
+    <div id="dotClock" class="dots"></div>
+  </section>
+  <section class="card w6" data-card="finance"><span class="gripper">⋮⋮</span><h2>💰 Финансы</h2><div id="finBody"></div></section>
+  <section class="card w" data-card="ai"><span class="gripper">⋮⋮</span><h2>🤖 ИИ‑ассистент</h2>
+    <div id="aiChat" class="ai-chat"></div>
+    <div class="mini"><input id="aiInput" placeholder="Спроси ИИ…"><button id="aiSend">➤</button><button id="aiTg" class="ghost" title="Отправить текст в Telegram">📨</button></div>
+    <p class="hint-s">ИИ отвечает и в Telegram 24/7. «Пришли ДОКУМЕНТ» — бот найдёт файл в хранилище и пришлёт.</p>
+  </section>
+  <section class="card w" data-card="docs"><span class="gripper">⋮⋮</span><h2>📄 Хранилище документов</h2>
+    <input type="file" id="docFile">
+    <p class="max-status" id="docStatus"></p>
+    <div id="docsList"></div>
+    <p class="hint-s">📨 — прислать в Telegram, ⬇ — скачать, ✕ — удалить.</p>
+  </section>
+  <section class="card w6" data-card="cars"><span class="gripper">⋮</span><h2> Машины</h2><div id="carsBody"></div></section>
+  <section class="card w6" data-card="ccards"><span class="gripper">⋮</span><h2>💳 Кредитные карты</h2>
+    <div class="cards-total">Общая задолженность: <span id="cardsTotal">0 ₽</span></div>
+    <div id="cardsBody"></div>
+  </section>
+  <section class="card w" data-card="bday"><span class="gripper">⋮⋮</span><h2>🎂 Дни рождения</h2><div id="bdayList"></div>
+    <form id="bdayForm" class="mini"><input id="bName" placeholder="Имя и фамилия" required><input id="bDate" type="date" required><input id="bGift" placeholder="Кто это / подарок"><button>＋</button></form>
+    <p class="hint-s">✎ — изменить, ✕ — убрать.</p>
+  </section>
+  <section class="card w" data-card="wishes"><span class="gripper">⋮⋮</span><h2>✨ Желания <span class="sub" id="wishCnt"></span></h2><div id="wishList"></div>
+    <form id="wishForm" class="mini"><input id="wishText" placeholder="Новое желание" required><button>＋</button></form>
+  </section>
+  <section class="card w" data-card="habits"><span class="gripper">⋮</span><h2>✅ Привычки <span class="sub" id="habWeek"></span><button id="habAdd" class="ghost hbtn" title="Добавить привычку">＋</button></h2>
+    <div id="habBody"></div>
+    <div class="lbl">Выполнение за месяц</div>
+    <div id="habChart"></div>
+  </section>
+  <section class="card w" data-card="skills"><span class="gripper">⋮</span><h2>🎯 Навыки</h2><div id="skillBody" class="rings"></div><p class="hint-s">Клик по кольцу — +5%</p></section>
+  <section class="card w" data-card="pomo"><span class="gripper">⋮⋮</span><h2>🍅 Pomodoro</h2><div id="pomoTime" class="pomo">25:00</div>
+    <div class="row-c"><button id="pomoStart">Старт</button><button id="pomoReset" class="ghost">Сброс</button></div>
+    <p class="hint-s" id="pomoCount" style="text-align:center"></p>
+  </section>
+  <section class="card w" data-card="energy"><span class="gripper">⋮⋮</span><h2>⚡ Энергия дня</h2><input type="range" id="energy" class="range" min="1" max="5" step="1"><div id="energyLbl" class="energy-lbl"></div>
+    <div class="lbl">История</div><div id="energyChart"></div>
+  </section>
+  <section class="card w" data-card="notes"><span class="gripper">⋮⋮</span><h2>📝 Быстрые заметки</h2>
+    <input id="noteInput" placeholder="Новая заметка — Enter для сохранения">
+    <div id="notesList"></div>
+  </section>
+  <section class="card w" data-card="quote"><span class="gripper">⋮⋮</span><h2>💬 Цитата дня</h2><p id="quoteTxt" class="quote"></p><button id="quoteNext" class="ghost">Другая цитата</button></section>
+</main>
+</div>
+<div id="srvModal" class="modal-wrap" hidden>
+  <div class="modal">
+    <h3>🔑 Вход на сервер</h3>
+    <input id="srvPass" type="password" placeholder="Пароль (из config.php)">
+    <p class="err" id="srvErr"></p>
+    <div class="modal-btns"><button id="srvOk">Войти</button><button id="srvCancel" class="ghost">Отмена</button></div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const P=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const S=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const diff=(a,b)=>Math.round((b-a)/86400000);
+const fmt=d=>String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const rub=n=>n.toLocaleString('ru-RU')+' ₽';
+const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const PALETTE=['#3b82f6','#f59e0b','#10b981','#8b5cf6','#14b8a6','#ec4899','#ef4444','#f97316','#06b6d4','#84cc16'];
+const QUOTES=['«Дисциплина — это делать то, чего не хочется, чтобы достичь того, чего хочется» — Джон Максвелл','«Лучшее время посадить дерево было 20 лет назад. Второе лучшее — сегодня»','«Не важно, как медленно ты идёшь, главное — не останавливаться» — Конфуций','«Успех — сумма небольших усилий, повторяемых день за днём» — Роберт Кольер','«Сначала мы формируем привычки, потом привычки формируют нас»','«Путь в тысячу ли начинается с первого шага» — Лао-цзы','«Время — это то, из чего сделана жизнь» — Бенджамин Франклин','«Сделай первый шаг — и дорога появится сама собой»'];
+const DEFAULT_ORDER=['gantt','smm','mission','finance','ai','docs','cars','ccards','bday','wishes','habits','skills','pomo','energy','notes','quote'];
+const mem={};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return(k in mem)?mem[k]:null}},
+ set(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=String(v)}},
+ del(k){try{localStorage.removeItem(k)}catch(e){delete mem[k]}}};
+document.documentElement.setAttribute('data-theme',store.get('gantt_theme')||'light');
+function applyThemeBtn(){$('themeBtn').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙'}
+$('themeBtn').onclick=()=>{const nx=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+ document.documentElement.setAttribute('data-theme',nx);store.set('gantt_theme',nx);applyThemeBtn()};
+applyThemeBtn();
+const DEF=()=>({
+ birthdays:[{id:1,name:'Мама',date:'1965-09-12',gift:'Цветы'},{id:2,name:'Иван (брат)',date:'1990-08-20',gift:''}],
+ mission:'Создать дело, которое приносит пользу людям и даёт мне свободу.',
+ goal:'Открыть точку к 1 октября и выйти на 150 000 ₽/мес к концу года.',
+ goalYear:'Запустить бизнес и выйти на стабильный доход.',
+ goalMonth:'Завершить все задачи текущего месяца в срок.',
+ wishes:[{id:1,text:'Открыть свой бизнес',done:true},{id:2,text:'Купить новый ноутбук',done:false},{id:3,text:'Поехать на море',done:false},{id:4,text:'Пробежать 10 км',done:false}],
+ fin:{income:150000,expense:90000,savings:250000,savGoal:1000000,invest:120000},
+ habits:[{id:1,name:'Спорт',marks:{}},{id:2,name:'Чтение',marks:{}},{id:3,name:'Вода',marks:{}},{id:4,name:'Сон 8 ч',marks:{}}],
+ skills:[{name:'JavaScript',v:65},{name:'Дизайн',v:40},{name:'Английский',v:70},{name:'Ораторское',v:35}],
+ cars:[{id:1,name:'Машина 1',vin:'',oil:'',oilDate:'',mileage:'',tasks:[]},{id:2,name:'Машина 2',vin:'',oil:'',oilDate:'',mileage:'',tasks:[]}],
+ cards:[{id:1,bank:'alfa',name:'Альфа №1',debt:0,log:[]},{id:2,bank:'alfa',name:'Альфа №2',debt:0,log:[]},{id:3,bank:'sber',name:'Сбер',debt:0,log:[]},{id:4,bank:'ozon',name:'Ozon',debt:0,log:[]}],
+ notes:[],quote:0,energy:{date:'',v:3},energyLog:[],pomo:{date:'',count:0},avatar:null,cardsOrder:null});
+let currentUser='Олег',state=null;
+const loadState=()=>{let r=null;try{r=JSON.parse(store.get('ls_state_'+currentUser))}catch(e){}
+ state=r?Object.assign(DEF(),r):DEF();
+ if(typeof state.notes==='string'){const t=state.notes.trim();state.notes=t?[{id:1,text:t}]:[];}
+ if(!Array.isArray(state.notes))state.notes=[];
+ if(!Array.isArray(state.energyLog))state.energyLog=[];
+ if(!Array.isArray(state.birthdays))state.birthdays=[];
+ if(!Array.isArray(state.cars))state.cars=DEF().cars;
+ if(!Array.isArray(state.cards))state.cards=DEF().cards;
+ if(!Array.isArray(state.cardsOrder))state.cardsOrder=null;};
+const save=()=>store.set('ls_state_'+currentUser,JSON.stringify(state));
+/* ---------- СЕРВЕР: вход, ИИ, документы ---------- */
+let srvAuth=false,srvStep='pass';
+function openSrvModal(){srvStep='pass';$('srvModal').hidden=false;$('srvPass').value='';$('srvPass').placeholder='Пароль (из config.php)';$('srvErr').textContent='';setTimeout(()=>$('srvPass').focus(),50);}
+$('srvCancel').onclick=()=>{$('srvModal').hidden=true};
+$('srvOk').onclick=async()=>{
+ const v=$('srvPass').value;
+ const act=srvStep==='pass'?'login':'login2';
+ const body=srvStep==='pass'?{password:v}:{code:v};
+ try{
+  const r=await fetch('api.php?action='+act,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json();
+  if(j.twofa){srvStep='code';$('srvErr').textContent='📨 Код отправлен в Telegram — введи его ниже';$('srvPass').value='';$('srvPass').placeholder='Код из Telegram (6 цифр)';return}
+  if(r.ok&&j.ok){srvStep='pass';srvAuth=true;$('srvModal').hidden=true;updateSrv();renderAI();renderDocs();}
+  else $('srvErr').textContent=j.hint||(j.sec?('Слишком много попыток — подожди '+j.sec+' сек'):(srvStep==='code'?'Неверный код':'Неверный пароль'));
+ }catch(e){$('srvErr').textContent='Сервер недоступен: '+e.message}
+};
+$('srvPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('srvOk').click()});
+async function srvPing(){try{const r=await fetch('api.php?action=ping');const j=await r.json();srvAuth=!!j.auth;}catch(e){srvAuth=false;}
+ updateSrv();renderAI();renderDocs();}
+function updateSrv(){$('srvBtn').textContent=srvAuth?'🟢 Подключено':'🔑 Войти';$('srvBtn').onclick=srvAuth?null:openSrvModal;const lo=$('logoutBtn');if(lo){lo.hidden=!srvAuth;lo.onclick=async()=>{await fetch('api.php?action=logout');location.reload();};}}
+let aiBusy=false;
+function aiPush(cls,txt){const d=document.createElement('div');d.className='ai-msg '+cls;d.textContent=txt;$('aiChat').appendChild(d);$('aiChat').scrollTop=$('aiChat').scrollHeight;return d;}
+function renderAI(){if(!srvAuth){$('aiChat').innerHTML='<div class="ai-msg bot">🔒 Нажми «🔑 Войти» сверху — и сможешь общаться с ИИ и работать с документами.</div>';}}
+async function aiSend(){const t=$('aiInput').value.trim();if(!t||aiBusy)return;
+ if(!srvAuth){openSrvModal();return}
+ $('aiInput').value='';aiPush('user',t);aiBusy=true;const wait=aiPush('bot','⏳ Думаю…');
+ try{const r=await fetch('api.php?action=ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});
+  const j=await r.json();wait.textContent=j.reply||'⚠️ Пустой ответ';
+ }catch(e){wait.textContent='⚠️ Ошибка сервера: '+e.message}
+ aiBusy=false;$('aiChat').scrollTop=$('aiChat').scrollHeight;}
+$('aiSend').onclick=aiSend;
+$('aiInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();aiSend()}});
+$('aiTg').onclick=async()=>{const t=$('aiInput').value.trim();if(!t){alert('Введи текст для отправки');return}
+ try{const r=await fetch('api.php?action=tgsend',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});
+  const j=await r.json();if(j.ok){$('aiInput').value='';alert('Отправлено в Telegram ✔')}else alert('Ошибка: '+(j.error||''))}catch(e){alert('Ошибка: '+e.message)}};
+async function renderDocs(){const el=$('docsList');
+ if(!srvAuth){el.innerHTML='<p class="hint-s">🔒 После входа: загрузка файлов и отправка ботом в Telegram.</p>';return}
+ try{const r=await fetch('api.php?action=docs');const d=await r.json();
+  el.innerHTML=d.length?d.map(x=>'<div class="doc-item"><span title="'+esc(x.name)+'">'+esc(x.name)+'</span><span class="sub">'+Math.round((x.size||0)/1024)+' КБ</span>'+
+   '<button class="d-tg" data-id="'+x.id+'" title="Прислать в Telegram">📨</button>'+
+   '<a class="d-get" href="api.php?action=docget&id='+encodeURIComponent(x.id)+'" title="Скачать">⬇</a>'+
+   '<button class="d-del" data-id="'+x.id+'">✕</button></div>').join(''):'<p class="hint-s">Пока пусто — загрузи первый документ.</p>';
+  el.querySelectorAll('.d-del').forEach(b=>b.onclick=async()=>{if(!confirm('Удалить документ?'))return;
+   await fetch('api.php?action=docdel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.dataset.id})});renderDocs();});
+  el.querySelectorAll('.d-tg').forEach(b=>b.onclick=async()=>{const r=await fetch('api.php?action=tgdoc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.dataset.id})});
+   const j=await r.json();alert(j.ok?'Отправлено в Telegram ✔':'Ошибка: '+(j.error||''))});
+ }catch(e){el.innerHTML='<p class="hint-s">Сервер недоступен.</p>'}}
+$('docFile').onchange=async()=>{const f=$('docFile').files[0];if(!f)return;
+ const fd=new FormData();fd.append('file',f);
+ $('docStatus').textContent='Загружаю…';
+ try{const r=await fetch('api.php?action=upload',{method:'POST',body:fd});const j=await r.json();
+  $('docStatus').textContent=j.ok?'Загружено ✔':'Ошибка: '+(j.error||'');if(j.ok)renderDocs();
+ }catch(e){$('docStatus').textContent='Ошибка: '+e.message}
+ $('docFile').value='';};
+/* ---------- МАШИНЫ ---------- */
+function renderCars(){const el=$('carsBody');
+ el.innerHTML=state.cars.map(c=>
+ '<div class="car-block"><div class="car-head"><span>🚗</span><b class="car-name" data-id="'+c.id+'" title="Двойной клик — переименовать">'+esc(c.name)+'</b><button class="hdel" data-delcar="'+c.id+'">✕</button></div>'+
+ '<div class="car-grid">'+
+ '<label>VIN<input data-cf="vin" data-id="'+c.id+'" value="'+esc(c.vin||'')+'" placeholder="VIN"></label>'+
+ '<label>Пробег, км<input type="number" data-cf="mileage" data-id="'+c.id+'" value="'+esc(c.mileage||'')+'"></label>'+
+ '<label>Масло (какое льём)<input data-cf="oil" data-id="'+c.id+'" value="'+esc(c.oil||'')+'" placeholder="Напр. 5W-30 Shell"></label>'+
+ '<label>Замена масла<input type="date" data-cf="oilDate" data-id="'+c.id+'" value="'+esc(c.oilDate||'')+'"></label>'+
+ '</div><div class="lbl">Сделать (мини‑задания)</div>'+
+ '<div class="ctasks">'+c.tasks.map(t=>'<div class="wish'+(t.done?' done':'')+'" data-ct="'+c.id+'" data-t="'+t.id+'"><div class="box">'+(t.done?'✓':'')+'</div><span>'+esc(t.text)+'</span><button class="del" data-delt="'+c.id+'|'+t.id+'">✕</button></div>').join('')+'</div>'+
+ '<div class="mini"><input placeholder="Новое задание…" data-ctin="'+c.id+'"><button data-ctadd="'+c.id+'">＋</button></div></div>').join('')+
+ '<button id="carAdd" class="ghost wide">＋ Добавить машину</button>';
+ el.querySelectorAll('input[data-cf]').forEach(inp=>inp.onchange=()=>{const c=state.cars.find(x=>x.id==inp.dataset.id);if(c){c[inp.dataset.cf]=inp.value;save();}});
+ el.querySelectorAll('[data-delcar]').forEach(b=>b.onclick=()=>{if(!confirm('Удалить машину и её задания?'))return;state.cars=state.cars.filter(c=>c.id!=b.dataset.delcar);save();renderCars();});
+ el.querySelectorAll('.car-name').forEach(sp=>sp.ondblclick=()=>{const c=state.cars.find(x=>x.id==sp.dataset.id);const v=prompt('Название машины:',c.name);if(v&&v.trim()){c.name=v.trim();save();renderCars();}});
+ el.querySelectorAll('.ctasks .wish').forEach(w=>w.onclick=e=>{if(e.target.classList.contains('del'))return;
+  const c=state.cars.find(x=>x.id==w.dataset.ct);const t=c.tasks.find(x=>x.id==w.dataset.t);t.done=!t.done;save();renderCars();});
+ el.querySelectorAll('[data-delt]').forEach(b=>b.onclick=()=>{const[cid,tid]=b.dataset.delt.split('|');const c=state.cars.find(x=>x.id==cid);c.tasks=c.tasks.filter(t=>t.id!=tid);save();renderCars();});
+ el.querySelectorAll('[data-ctadd]').forEach(b=>b.onclick=()=>{const inp=el.querySelector('[data-ctin="'+b.dataset.ctadd+'"]');const v=inp.value.trim();if(!v)return;const c=state.cars.find(x=>x.id==b.dataset.ctadd);c.tasks.push({id:Date.now(),text:v,done:false});save();renderCars();});
+ el.querySelectorAll('[data-ctin]').forEach(inp=>inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('[data-ctadd="'+inp.dataset.ctin+'"]').click();}});
+ $('carAdd').onclick=()=>{state.cars.push({id:Date.now(),name:'Машина '+(state.cars.length+1),vin:'',oil:'',oilDate:'',mileage:'',tasks:[]});save();renderCars();};}
+/* ---------- КАРТЫ ---------- */
+function renderCards(){
+ $('cardsTotal').textContent=rub(state.cards.reduce((s,c)=>s+(+c.debt||0),0));
+ const el=$('cardsBody');
+ el.innerHTML=state.cards.map(c=>{
+  const lg={alfa:'lg-alfa',sber:'lg-sber',ozon:'lg-ozon'}[c.bank]||'lg-alfa';
+  const lt={alfa:'А',sber:'С',ozon:'O'}[c.bank]||'•';
+  return '<div class="cc-block"><div class="cc-head"><span class="cc-logo '+lg+'">'+lt+'</span><b class="cc-name" data-id="'+c.id+'" title="Двойной клик — переименовать">'+esc(c.name)+'</b><button class="hdel" data-delcard="'+c.id+'">✕</button></div>'+
+  '<label>Задолженность, ₽<input type="number" data-cdf="debt" data-id="'+c.id+'" value="'+esc(c.debt||0)+'"></label>'+
+  '<div class="mini"><input placeholder="Отметить: оплата, трата…" data-clog="'+c.id+'"><button data-clogadd="'+c.id+'">＋</button></div>'+
+  '<div class="clog">'+(c.log||[]).slice(-5).reverse().map(l=>'<div class="clog-item"><span>'+esc(l.text)+'</span><i>'+esc(l.ts)+'</i></div>').join('')+'</div></div>';
+ }).join('')+
+ '<div class="mini" style="margin-top:10px"><select id="ccBank"><option value="alfa">Альфа</option><option value="sber">Сбер</option><option value="ozon">Ozon</option></select><input id="ccName" placeholder="Название карты"><button id="ccAdd">＋</button></div>';
+ el.querySelectorAll('input[data-cdf]').forEach(inp=>inp.onchange=()=>{const c=state.cards.find(x=>x.id==inp.dataset.id);if(c){c.debt=+inp.value||0;save();
+  $('cardsTotal').textContent=rub(state.cards.reduce((s,x)=>s+(+x.debt||0),0));}});
+ el.querySelectorAll('[data-delcard]').forEach(b=>b.onclick=()=>{if(!confirm('Удалить карту?'))return;state.cards=state.cards.filter(c=>c.id!=b.dataset.delcard);save();renderCards();});
+ el.querySelectorAll('.cc-name').forEach(sp=>sp.ondblclick=()=>{const c=state.cards.find(x=>x.id==sp.dataset.id);const v=prompt('Название карты:',c.name);if(v&&v.trim()){c.name=v.trim();save();renderCards();}});
+ el.querySelectorAll('[data-clogadd]').forEach(b=>b.onclick=()=>{const inp=el.querySelector('[data-clog="'+b.dataset.clogadd+'"]');const v=inp.value.trim();if(!v)return;const c=state.cards.find(x=>x.id==b.dataset.clogadd);c.log=c.log||[];c.log.push({ts:fmt(new Date())+' '+new Date().toTimeString().slice(0,5),text:v});save();renderCards();});
+ el.querySelectorAll('[data-clog]').forEach(inp=>inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el.querySelector('[data-clogadd="'+inp.dataset.clog+'"]').click();}});
+ $('ccAdd').onclick=()=>{state.cards.push({id:Date.now(),bank:$('ccBank').value,name:$('ccName').value.trim()||('Карта '+(state.cards.length+1)),debt:0,log:[]});save();renderCards();};}
+/* ---------- ОБЩЕЕ ---------- */
+function applyCardOrder(){
+ const grid=$('cardsGrid');if(!grid)return;
+ const cards=[...grid.querySelectorAll('.card')];
+ const byKey={};cards.forEach(c=>byKey[c.dataset.card]=c);
+ const order=[...(state.cardsOrder||DEFAULT_ORDER)];
+ cards.forEach(c=>{if(!order.includes(c.dataset.card))order.push(c.dataset.card)});
+ order.forEach(k=>{if(byKey[k])grid.appendChild(byKey[k])});
+}
+function saveCardOrder(){state.cardsOrder=[...$('cardsGrid').querySelectorAll('.card')].map(c=>c.dataset.card).filter(Boolean);save()}
+function initDrag(){
+ const grid=$('cardsGrid');if(!grid)return;
+ grid.querySelectorAll('.gripper').forEach(g=>{
+  g.addEventListener('pointerdown',e=>{
+   e.preventDefault();e.stopPropagation();
+   const card=g.closest('.card');
+   const cards=[...grid.querySelectorAll('.card')];
+   const origIdx=cards.indexOf(card);
+   let targetIdx=origIdx;
+   g.setPointerCapture(e.pointerId);
+   card.classList.add('dragging');
+   const move=ev=>{
+    const y=ev.clientY;
+    let newIdx=cards.findIndex(c=>y<c.getBoundingClientRect().bottom);
+    if(newIdx===-1)newIdx=cards.length-1;
+    if(newIdx<0)newIdx=0;
+    targetIdx=newIdx;
+    cards.forEach((c,i)=>c.classList.toggle('drop-target',i===targetIdx&&i!==origIdx));
+   };
+   const up=()=>{
+    g.removeEventListener('pointermove',move);
+    card.classList.remove('dragging');
+    cards.forEach(c=>c.classList.remove('drop-target'));
+    if(targetIdx!==origIdx){
+     const item=cards.splice(origIdx,1)[0];
+     cards.splice(targetIdx,0,item);
+     cards.forEach(c=>grid.appendChild(c));
+     saveCardOrder();
+    }
+   };
+   g.addEventListener('pointermove',move);
+   g.addEventListener('pointerup',up,{once:true});
+   g.addEventListener('pointercancel',up,{once:true});
+  });
+ });
+}
+async function enterApp(){await srvPing();await loadState();
+ if(state.pomo.date!==S(new Date()))state.pomo={date:S(new Date()),count:0};
+ $('appScreen').hidden=false;
+ $('mission').innerText=state.mission;$('goal').innerText=state.goal;
+ $('goalYear').innerText=state.goalYear;$('goalMonth').innerText=state.goalMonth;
+ state.quote=Math.floor(Math.random()*QUOTES.length);
+ applyCardOrder();initDrag();applyAvatar();renderAll();}
+setInterval(()=>{const n=new Date();$('clockTime').textContent=n.toLocaleTimeString('ru-RU');
+ const h=n.getHours();const g=h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер';
+ $('greet').textContent=g+', '+currentUser+'!';
+ $('clockDate').textContent=n.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});},1000);
+let dotCount=60;
+(function(){const el=$('dotClock');for(let i=0;i<60;i++)el.appendChild(document.createElement('span'));
+ setInterval(()=>{dotCount--;if(dotCount<0)dotCount=60;
+  const sp=el.children;for(let i=0;i<sp.length;i++)sp[i].classList.toggle('off',i>=dotCount);},1000);})();
+function applyAvatar(){const b=$('avatarBox');b.style.backgroundImage=state.avatar?'url('+state.avatar+')':'linear-gradient(135deg,#6A8DFF,#8A6EFF)';b.textContent=state.avatar?'':(currentUser||'').slice(0,2).toUpperCase()}
+$('avatarBox').onclick=()=>$('avatarFile').click();
+$('avatarFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');const s=Math.min(im.width,im.height);c.width=96;c.height=96;c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,96,96);state.avatar=c.toDataURL('image/jpeg',.85);save();applyAvatar()};im.src=r.result};r.readAsDataURL(f)};
+function nextBday(ds){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=ds.split('-').map(Number);let n=new Date(t.getFullYear(),m-1,d);if(n<t)n=new Date(t.getFullYear()+1,m-1,d);return n}
+function renderBdays(){const list=[...state.birthdays].sort((a,b)=>nextBday(a.date)-nextBday(b.date));
+ $('bdayList').innerHTML=list.map(b=>{const n=nextBday(b.date);const dd=diff(new Date(new Date().setHours(0,0,0,0)),n);const age=n.getFullYear()-P(b.date).getFullYear();
+  return '<div class="bday"><div class="b-ava" style="background:'+PALETTE[b.id%PALETTE.length]+'">'+esc((b.name||'?').slice(0,1).toUpperCase())+'</div>'+
+  '<div class="b-info"><span class="b-name">'+esc(b.name)+'</span>'+
+  '<div class="sub">'+fmt(P(b.date))+' · '+age+' лет'+(b.gift?' · 🎁 '+esc(b.gift):'')+'</div></div>'+
+  '<div class="b-day"><b>'+(dd===0?'Сегодня 🎉':'через '+dd+' дн.')+'</b>'+fmt(n)+'</div>'+
+  '<div class="b-btns"><button class="b-edit" data-e="'+b.id+'" title="Изменить">✎</button><button class="b-del" data-x="'+b.id+'" title="Удалить">✕</button></div></div>'}).join('')||'<p class="sub">Пока пусто</p>';
+ $('bdayList').querySelectorAll('.b-edit').forEach(b=>b.onclick=()=>{const o=state.birthdays.find(x=>x.id==b.dataset.e);if(!o)return;
+  const name=prompt('Имя и фамилия:',o.name);if(name===null)return;
+  const gift=prompt('Кто это / подарок:',o.gift||'');if(gift===null)return;
+  o.name=name.trim()||o.name;o.gift=gift.trim();save();renderBdays()});
+ $('bdayList').querySelectorAll('.b-del').forEach(b=>b.onclick=()=>{if(!confirm('Удалить эту запись?'))return;
+  state.birthdays=state.birthdays.filter(x=>x.id!=b.dataset.x);save();renderBdays()});}
+$('bdayForm').onsubmit=e=>{e.preventDefault();
+ state.birthdays.push({id:Date.now(),name:$('bName').value.trim(),date:$('bDate').value,gift:$('bGift').value.trim()});
+ save();renderBdays();$('bdayForm').reset()};
+function renderWishes(){$('wishCnt').textContent=state.wishes.filter(w=>w.done).length+'/'+state.wishes.length;
+ const list=[...state.wishes].sort((a,b)=>(a.done?1:0)-(b.done?1:0));
+ $('wishList').innerHTML=list.map(w=>'<div class="wish'+(w.done?' done':'')+'" data-t="'+w.id+'"><div class="box">'+(w.done?'✓':'')+'</div><span>'+esc(w.text)+'</span><button class="del" data-d="'+w.id+'">✕</button></div>').join('');
+ $('wishList').querySelectorAll('.wish').forEach(el=>el.onclick=e=>{if(e.target.classList.contains('del'))return;const w=state.wishes.find(x=>x.id==el.dataset.t);w.done=!w.done;save();renderWishes()});
+ $('wishList').querySelectorAll('.del').forEach(b=>b.onclick=()=>{state.wishes=state.wishes.filter(w=>w.id!=b.dataset.d);save();renderWishes()});}
+$('wishForm').onsubmit=e=>{e.preventDefault();state.wishes.push({id:Date.now(),text:$('wishText').value.trim(),done:false});save();renderWishes();$('wishForm').reset()};
+function renderHabits(){const t=new Date();t.setHours(0,0,0,0);const mon=addDays(t,-((t.getDay()+6)%7));
+ $('habWeek').textContent=fmt(mon)+' – '+fmt(addDays(mon,6));
+ let html='<table class="hab"><tr><th></th>';for(let i=0;i<7;i++)html+='<th>'+WD[addDays(mon,i).getDay()]+'</th>';html+='<th></th><th></th></tr>';
+ state.habits.forEach(h=>{let cnt=0;html+='<tr><td><span class="hab-name" data-h="'+h.id+'" title="Двойной клик — переименовать">'+esc(h.name)+'</span></td>';
+  for(let i=0;i<7;i++){const ds=S(addDays(mon,i));const on=h.marks[ds];if(on)cnt++;html+='<td><span class="hab-cell'+(on?' on':'')+'" data-h="'+h.id+'" data-d="'+ds+'"></span></td>'}
+  html+='<td class="sub">'+cnt+'/7</td><td><button class="hdel" data-h="'+h.id+'" title="Удалить привычку">✕</button></td></tr>';});
+ $('habBody').innerHTML=html+'</table>';
+ $('habBody').querySelectorAll('.hab-cell').forEach(c=>c.onclick=()=>{const h=state.habits.find(x=>x.id==c.dataset.h);h.marks[c.dataset.d]=!h.marks[c.dataset.d];save();renderHabits()});
+ $('habBody').querySelectorAll('.hab-name').forEach(sp=>sp.ondblclick=()=>{const h=state.habits.find(x=>x.id==sp.dataset.h);const v=prompt('Название привычки:',h.name);if(v&&v.trim()){h.name=v.trim();save();renderHabits()}});
+ $('habBody').querySelectorAll('.hdel').forEach(b=>b.onclick=()=>{if(!confirm('Удалить привычку?'))return;state.habits=state.habits.filter(h=>h.id!=b.dataset.h);save();renderHabits()});
+ const dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();let ch='';
+ for(let d=1;d<=dim;d++){const ds=S(new Date(t.getFullYear(),t.getMonth(),d));
+  const cnt=state.habits.filter(h=>h.marks[ds]).length;const pct=state.habits.length?cnt/state.habits.length:0;
+  const future=d>t.getDate();
+  ch+='<div class="hc'+(d===t.getDate()?' today':'')+(pct===0?' empty':'')+'" style="height:'+Math.round(4+pct*42)+'px;'+(future?'opacity:.25':'')+'" title="'+d+': '+cnt+'/'+state.habits.length+'"></div>';}
+ $('habChart').innerHTML=ch;}
+$('habAdd').onclick=()=>{const n=prompt('Название привычки:');if(n&&n.trim()){state.habits.push({id:Date.now(),name:n.trim(),marks:{}});save();renderHabits()}};
+function renderSkills(){const C=2*Math.PI*29;
+ $('skillBody').innerHTML=state.skills.map((s,i)=>'<div class="ring" data-i="'+i+'"><svg viewBox="0 0 76 76"><circle class="bgc" cx="38" cy="38" r="29"></circle><circle class="fgc" cx="38" cy="38" r="29" stroke="'+PALETTE[i%PALETTE.length]+'" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-s.v/100))+'"></circle></svg><b>'+s.v+'%</b><span class="rn">'+esc(s.name)+'</span></div>').join('');
+ $('skillBody').querySelectorAll('.ring').forEach(r=>r.onclick=()=>{const s=state.skills[r.dataset.i];s.v=s.v>=100?0:Math.min(100,s.v+5);save();renderSkills()});}
+function renderFin(){const f=state.fin;const exP=Math.min(100,Math.round(f.expense/f.income*100));const svP=Math.min(100,Math.round(f.savings/f.savGoal*100));
+ const exC=exP<70?'var(--ok)':exP<100?'var(--warn)':'var(--bad)';
+ $('finBody').innerHTML=
+ '<div class="fin-row"><span>Доход / мес</span><b>'+rub(f.income)+'</b> <button data-f="income">✎</button></div>'+
+ '<div class="fin-row"><span>Расходы / мес</span><b>'+rub(f.expense)+'</b> <button data-f="expense">✎</button></div>'+
+ '<div class="sub">Расходы от дохода: '+exP+'%</div><div class="pbar"><div style="width:'+exP+'%;background:'+exC+'"></div></div>'+
+ '<div class="fin-row"><span>Остаток месяца</span><b style="color:'+(f.income-f.expense>=0?'var(--ok)':'var(--bad)')+'">'+rub(f.income-f.expense)+'</b></div>'+
+ '<div class="fin-row"><span>Накопления</span><b>'+rub(f.savings)+'</b> <button data-f="savings">✎</button></div>'+
+ '<div class="sub">Цель: '+rub(f.savGoal)+' ('+svP+'%) <button data-f="savGoal">✎</button></div><div class="pbar"><div style="width:'+svP+'%;background:linear-gradient(90deg,#6A8DFF,#8A6EFF)"></div></div>'+
+ '<div class="fin-row"><span>Инвестиции</span><b>'+rub(f.invest)+'</b> <button data-f="invest">✎</button></div>';
+ $('finBody').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const v=prompt('Новое значение:',state.fin[b.dataset.f]);if(v!==null&&!isNaN(+v)){state.fin[b.dataset.f]=+v;save();renderFin()}});}
+let pomoLeft=1500,pomoRun=false,pomoTimer=null;
+function pomoShow(){const m=String(Math.floor(pomoLeft/60)).padStart(2,'0'),s=String(pomoLeft%60).padStart(2,'0');$('pomoTime').textContent=m+':'+s;
+ $('pomoCount').textContent='🍅 × '+state.pomo.count+' сегодня';$('pomoStart').textContent=pomoRun?'Пауза':'Старт';}
+$('pomoStart').onclick=()=>{if(pomoRun){clearInterval(pomoTimer);pomoRun=false}
+ else{pomoRun=true;pomoTimer=setInterval(()=>{pomoLeft--;if(pomoLeft<=0){clearInterval(pomoTimer);pomoRun=false;pomoLeft=1500;state.pomo.count++;save();$('pomoTime').classList.add('flash');setTimeout(()=>$('pomoTime').classList.remove('flash'),3200)}pomoShow()},1000)}pomoShow()};
+$('pomoReset').onclick=()=>{clearInterval(pomoTimer);pomoRun=false;pomoLeft=1500;pomoShow()};
+function renderEnergy(){$('energy').value=state.energy.v;$('energyLbl').textContent=['😴','😕','😐','🙂','🔥'][state.energy.v-1]+' '+state.energy.v+'/5';renderEnergyChart()}
+function renderEnergyChart(){const log=(state.energyLog||[]).slice(-40);const el=$('energyChart');
+ if(!log.length){el.innerHTML='<p class="hint-s">Двигай ползунок — история появится здесь.</p>';return}
+ const w=300,h=64;
+ const y=v=>h-10-((v-1)/4)*(h-20);
+ const pts=log.map((p,i)=>[(log.length===1?w/2:5+i*(w-10)/(log.length-1)),y(p.v)]);
+ const line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+ el.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+
+  '<defs><linearGradient id="eg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6A8DFF"/><stop offset="1" stop-color="#8A6EFF"/></linearGradient></defs>'+
+  [1,2,3,4,5].map(v=>'<line x1="0" x2="'+w+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="var(--border)" stroke-width="1"/>').join('')+
+  '<polyline points="'+line+'" fill="none" stroke="url(#eg)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+  pts.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.6" fill="#6A8DFF"/>').join('')+'</svg>';}
+function logEnergy(v){
+ state.energy={date:S(new Date()),v:v};
+ state.energyLog.push({ts:Date.now(),v:v});
+ if(state.energyLog.length>300)state.energyLog=state.energyLog.slice(-300);
+ save();renderEnergy();
+}
+$('energy').addEventListener('input',e=>logEnergy(+e.target.value));
+$('energy').addEventListener('click',()=>logEnergy(+$('energy').value));
+function renderNotes(){$('notesList').innerHTML=state.notes.map(n=>'<div class="note-item"><span>'+esc(n.text)+'</span><button class="del" data-n="'+n.id+'">✕</button></div>').join('')||'<p class="hint-s">Заметок пока нет.</p>';
+ $('notesList').querySelectorAll('.del').forEach(b=>b.onclick=()=>{state.notes=state.notes.filter(n=>n.id!=b.dataset.n);save();renderNotes()});}
+$('noteInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();
+ const t=$('noteInput').value.trim();if(!t)return;
+ state.notes.push({id:Date.now(),text:t});save();renderNotes();$('noteInput').value='';}});
+function renderQuote(){$('quoteTxt').textContent=QUOTES[state.quote%QUOTES.length]}
+$('quoteNext').onclick=()=>{let n;do{n=Math.floor(Math.random()*QUOTES.length)}while(n===state.quote%QUOTES.length&&QUOTES.length>1);
+ state.quote=n;save();renderQuote()};
+function renderAll(){renderBdays();renderWishes();renderHabits();renderSkills();renderFin();renderQuote();renderEnergy();renderNotes();renderCars();renderCards();pomoShow()}
+enterApp();
+</script>
+</body>
+</html>

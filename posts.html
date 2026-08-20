@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Посты — SMM‑центр</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f5;--bg-grad:radial-gradient(1100px 520px at 72% -12%,rgba(106,141,255,.12),transparent 60%);--panel:#fff;--panel-grad:linear-gradient(180deg,#fff,#fafbfd);--panel2:#f2f4f7;--text:#1f2328;--text2:#5d646d;--text3:#8a8f98;--border:rgba(20,30,60,.1);--accent:#5e6ad2;--ok:#22a06b;--warn:#f59e0b;--bad:#dc2626;--shadow:0 4px 14px rgba(30,40,80,.1);color-scheme:light}
+html[data-theme='dark']{--bg:#08090b;--bg-grad:radial-gradient(1100px 520px at 72% -12%,rgba(94,106,210,.17),transparent 60%);--panel:#0f1013;--panel-grad:linear-gradient(180deg,#101116,#0c0d11);--panel2:#16171c;--text:#f7f8f8;--text2:#a0a5ad;--text3:#6b7078;--border:rgba(255,255,255,.1);--shadow:0 4px 16px rgba(0,0,0,.5);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Manrope','Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.5;color:var(--text);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;padding:16px}
+.wrap{max-width:920px;margin:0 auto}
+a.back{color:var(--accent);text-decoration:none;font-weight:800;font-size:13px;font-family:'Unbounded'}
+h1{font-size:20px;margin:12px 0 14px;font-family:'Unbounded';font-weight:700}
+.card{background:var(--panel-grad);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.6)}
+html[data-theme='dark'] .card{box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.05)}
+.card h2{font-size:15px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
+.card h2::after{content:'';flex:0 0 32px;height:2.5px;border-radius:2px;background:linear-gradient(90deg,#6A8DFF,#8A6EFF)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+textarea,input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--panel2);color:var(--text);font-family:inherit;box-shadow:inset 0 1px 3px rgba(20,30,60,.06)}
+textarea{min-height:90px;resize:vertical}
+textarea.tall{min-height:140px}
+button{padding:9px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#6A8DFF,#8A6EFF);color:#fff;cursor:pointer;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(106,141,255,.28),inset 0 1px 0 rgba(255,255,255,.25)}
+button:disabled{opacity:.5;cursor:wait}
+button.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border);box-shadow:none}
+button.small{padding:5px 10px;font-size:12px}
+.hint{font-size:12px;color:var(--text3);margin-top:6px}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid}
+.st-draft{color:var(--text2);border-color:var(--border)}
+.st-review{color:var(--warn);border-color:var(--warn)}
+.st-approved{color:var(--ok);border-color:var(--ok)}
+.st-published{color:#fff;background:var(--ok);border-color:var(--ok)}
+.st-rejected{color:var(--bad);border-color:var(--bad)}
+details.date{border:1px solid var(--border);border-radius:12px;background:var(--panel);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+details.date summary{cursor:pointer;padding:11px 14px;font-weight:800;background:var(--panel2);list-style:none;display:flex;justify-content:space-between;gap:8px}
+details.date summary::-webkit-details-marker{display:none}
+.post{padding:12px 14px;border-top:1px solid var(--border)}
+.post .txt{white-space:pre-wrap;font-size:14px;margin:8px 0}
+.post img{max-width:200px;border-radius:10px;display:block;margin:6px 0;border:1px solid var(--border)}
+.post.pub{display:flex;align-items:center;gap:8px;padding:6px 14px}
+.ptxt{flex:1;color:var(--text2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qitem{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-top:6px;font-size:13px;background:var(--panel2);cursor:grab}
+.qitem.drag{opacity:.4;border-style:dashed}
+.qnum{font-weight:800;color:var(--accent);min-width:24px;text-align:center;border-radius:6px;background:var(--panel);border:1px solid var(--border)}
+.qtxt{flex:1}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wday{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel2)}
+.wday label{display:flex;gap:10px;align-items:center;font-weight:700;font-size:14px;min-width:130px;cursor:pointer}
+.wday input[type=checkbox]{width:18px;height:18px;cursor:pointer}
+.wday input[type=time]{width:120px}
+.wday.off{opacity:.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="top">
+ <a class="back" href="index.html">← На главную</a>
+ <button id="themeBtn" class="ghost small">🌙</button>
+</div>
+<h1>📣 SMM‑центр</h1>
+
+<div id="appBox">
+ <div class="card">
+  <h2>📚 Промты списком (очередь)</h2>
+  <textarea id="bulkPrompts" class="tall" placeholder="Вставь промты — каждый с новой строки. Они добавятся В КОНЕЦ очереди…"></textarea>
+  <div class="row" style="margin-top:8px">
+   <button id="bulkSave" class="small">💾 Добавить в очередь</button>
+   <button id="queueClear" class="small ghost">🧹 Очистить очередь</button>
+   <span class="hint" id="qCnt"></span>
+  </div>
+  <details class="date" data-k="queue" open style="margin-top:10px">
+   <summary>🗂 Очередь по номерам <span style="color:var(--text3)" id="qCnt2"></span></summary>
+   <div id="queueBox" style="padding:10px 12px"></div>
+  </details>
+  <p class="hint">Порядок = порядок публикации. Строки можно ПЕРЕТАСКИВАТЬ мышкой. После генерации промт удаляется сам.</p>
+ </div>
+
+ <details class="date" data-k="style">
+  <summary>🎨 Стиль постов (текст + фото)</summary>
+  <div style="padding:12px 14px">
+   <label class="hint">Стиль текста (применяется ко всем постам):</label>
+   <textarea id="styleText" style="min-height:60px" placeholder="Например: дружелюбно, просто, с юмором…"></textarea>
+   <label class="hint">Стиль картинок (применяется ко всем фото):</label>
+   <textarea id="styleImg" style="min-height:60px" placeholder="Например: тёплые цвета, мультяшный стиль…"></textarea>
+   <div class="row" style="margin-top:8px"><button id="styleSave" class="small">💾 Сохранить стиль</button></div>
+  </div>
+ </details>
+
+ <details class="date" data-k="week">
+  <summary>⚙️ Расписание на неделю</summary>
+  <div style="padding:12px 14px">
+   <div id="weekBox"></div>
+   <div class="row" style="margin-top:8px">
+    <button id="autoSave" class="small">💾 Сохранить расписание</button>
+    <button id="genNow" class="ghost small">⚡ Сгенерировать сейчас</button>
+   </div>
+   <p class="hint" id="genInfo"></p>
+  </div>
+ </details>
+
+ <details class="date" data-k="manual">
+  <summary>🎛 Вручную: промт → готовый пост</summary>
+  <div style="padding:12px 14px">
+   <label class="hint">Промт на текст:</label>
+   <textarea id="mTextPrompt" placeholder="Например: расскажи про новую мебель…"></textarea>
+   <label class="hint">Промт на фото:</label>
+   <textarea id="mImgPrompt" style="min-height:60px" placeholder="Например: яркая мебель в цеху…"></textarea>
+   <div class="row" style="margin-top:8px"><button id="makePost" class="small">🎨 Сделать пост</button></div>
+   <p class="hint">Или совсем вручную: текст + своё фото ниже.</p>
+   <textarea id="postTxt" style="min-height:70px" placeholder="Готовый текст поста…"></textarea>
+   <div class="row" style="margin-top:8px">
+    <input type="file" id="postImg" accept="image/*" style="flex:1">
+    <button id="postAdd" class="small">＋ Создать пост</button>
+   </div>
+  </div>
+ </details>
+
+ <h2 style="font-size:16px;margin:16px 0 10px;font-family:'Unbounded'">🗂 Посты по датам</h2>
+ <div id="postsBox"></div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+document.documentElement.setAttribute('data-theme',store.get('gantt_theme')||'light');
+$('themeBtn').onclick=()=>{const nx=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+ document.documentElement.setAttribute('data-theme',nx);store.set('gantt_theme',nx);$('themeBtn').textContent=nx==='dark'?'☀️':'🌙'};
+$('themeBtn').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';
+let lastPosts=[], lastQueue=[], weekData=[];
+const DAYS=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
+
+/* запросы с автоповтором (сервер сейчас под нагрузкой) */
+async function getJSON(a){ for(let i=0;i<2;i++){ try{ const r=await fetch('api.php?action='+a); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }catch(e){ if(i===1) throw e; await new Promise(x=>setTimeout(x,700)); } } }
+async function post(a,body){ for(let i=0;i<2;i++){ try{ const r=await fetch('api.php?action='+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }catch(e){ if(i===1) return {error:e.message}; await new Promise(x=>setTimeout(x,700)); } } }
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function defWeek(){return DAYS.map((d,i)=>({on:i<5,time:'12:00'}));}
+function openState(){const o={};document.querySelectorAll('details[data-k]').forEach(d=>{o[d.dataset.k]=d.open});return o;}
+function applyOpen(o){document.querySelectorAll('details[data-k]').forEach(d=>{if(o[d.dataset.k]!==undefined)d.open=o[d.dataset.k];});}
+
+function renderWeek(w){
+  weekData=(w&&w.length===7)?w:defWeek();
+  $('weekBox').innerHTML=weekData.map((d,i)=>
+    '<div class="wday '+(d.on?'':'off')+'">'+
+    '<label><input type="checkbox" data-wd="'+i+'" '+(d.on?'checked':'')+'> '+DAYS[i]+'</label>'+
+    '<input type="time" data-wt="'+i+'" value="'+(d.time||'12:00')+'" '+(d.on?'':'disabled')+'>'+
+    '</div>').join('');
+  document.querySelectorAll('[data-wd]').forEach(c=>c.onchange=()=>{
+    const i=+c.dataset.wd; weekData[i].on=c.checked;
+    const t=document.querySelector('[data-wt="'+i+'"]'); if(t)t.disabled=!c.checked;
+    c.closest('.wday').classList.toggle('off',!c.checked);
+  });
+  document.querySelectorAll('[data-wt]').forEach(t=>t.onchange=()=>{weekData[+t.dataset.wt].time=t.value||'12:00';});
+}
+
+/* ---------- ОЧЕРЕДЬ + ПЕРЕТАСКИВАНИЕ ---------- */
+let dragEl=null, orderTimer=null;
+function saveOrder(){ clearTimeout(orderTimer); orderTimer=setTimeout(()=>{ post('prompts_reorder',{ids:lastQueue.map(p=>p.id)}); },500); }
+function getAfter(container,y){
+  return [...container.querySelectorAll('.qitem:not(.drag)')].reduce((closest,child)=>{
+    const box=child.getBoundingClientRect(); const offset=y-box.top-box.height/2;
+    if(offset<0&&offset>closest.offset) return {offset:offset,element:child};
+    return closest;
+  },{offset:-Infinity}).element;
+}
+function renderQueue(q){
+  lastQueue=q;
+  $('queueBox').innerHTML=q.length?q.map((p,i)=>'<div class="qitem" draggable="true" data-qid="'+p.id+'"><span class="qnum">'+(i+1)+'</span><span class="qtxt">'+esc(p.text)+'</span><button class="small ghost" data-qd="'+p.id+'">🗑</button></div>').join(''):'<p class="hint">Очередь пуста — добавь промты выше.</p>';
+  document.querySelectorAll('[data-qd]').forEach(b=>b.onclick=async e=>{
+    e.stopPropagation(); b.disabled=true;
+    await post('prompts_del',{id:b.dataset.qd});
+    await loadAll();
+  });
+  document.querySelectorAll('.qitem').forEach(el=>{
+    el.addEventListener('dragstart',()=>{ dragEl=el; setTimeout(()=>el.classList.add('drag'),0); });
+    el.addEventListener('dragend',()=>{
+      el.classList.remove('drag'); dragEl=null;
+      const ids=[...$('queueBox').querySelectorAll('.qitem')].map(x=>x.dataset.qid);
+      lastQueue=ids.map(id=>lastQueue.find(p=>p.id===id)).filter(Boolean);
+      renderQueue(lastQueue);
+      saveOrder();
+    });
+  });
+}
+$('queueBox').addEventListener('dragover',e=>{
+  e.preventDefault(); if(!dragEl) return;
+  const after=getAfter($('queueBox'),e.clientY);
+  if(after==null) $('queueBox').appendChild(dragEl); else $('queueBox').insertBefore(dragEl,after);
+});
+
+/* ---------- ПОСТЫ ---------- */
+const ST={draft:['📝 Черновик','st-draft'],review:['⏳ На согласовании','st-review'],approved:['✅ Одобрен','st-approved'],published:['🚀 В VK','st-published'],rejected:['❌ Отклонён','st-rejected']};
+function renderPosts(posts){
+  const byDate={};
+  posts.forEach(p=>{(byDate[p.date]=byDate[p.date]||[]).push(p)});
+  const dates=Object.keys(byDate).sort().reverse();
+  $('postsBox').innerHTML=dates.length?dates.map(d=>{
+    const list=byDate[d];
+    return '<details class="date" data-k="d_'+d+'"><summary>📅 '+d.split('-').reverse().join('.')+' <span style="color:var(--text3)">'+list.length+'</span></summary>'+
+     list.map(p=>{const s=ST[p.status]||ST.draft;
+      if(p.status==='published'){
+        const short=esc((p.text||'').replace(/\s+/g,' ').slice(0,90));
+        return '<div class="post pub"><span class="badge '+s[1]+'">'+s[0]+'</span> <span class="hint">'+(p.time||'')+'</span> <span class="ptxt">'+short+'…</span> <button class="small ghost" data-dx="'+p.id+'">🗑</button></div>';
+      }
+      return '<div class="post"><span class="badge '+s[1]+'">'+s[0]+'</span> <span class="hint">'+(p.time||'')+'</span>'+
+      (p.img?'<a href="api.php?action=pimg_get&f='+encodeURIComponent(p.img)+'" target="_blank"><img src="api.php?action=pimg_get&f='+encodeURIComponent(p.img)+'"></a>':'')+
+      '<div class="txt">'+esc(p.text)+'</div>'+
+      '<div class="row">'+
+      '<button class="small" data-rv="'+p.id+'">📨 На согласование</button>'+
+      '<button class="small ghost" data-im="'+p.id+'">🖼 Новая картинка</button>'+
+      '<button class="small ghost" data-vk="'+p.id+'">🚀 В VK</button>'+
+      '<button class="small ghost" data-dl="'+p.id+'">⬇ Пост</button>'+
+      (p.img?'<a href="api.php?action=pimg_get&f='+encodeURIComponent(p.img)+'" download><button class="small ghost">⬇ Фото</button></a>':'')+
+      '<button class="small ghost" data-ed="'+p.id+'">✏️</button>'+
+      '<button class="small ghost" data-dx="'+p.id+'">🗑</button></div></div>';}).join('')+'</details>';
+  }).join(''):'<p class="hint">Постов пока нет.</p>';
+  document.querySelectorAll('[data-rv]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await post('post_review',{id:b.dataset.rv});alert(r.ok?'Отправлено в Telegram ✔':'Ошибка');await loadAll()});
+  document.querySelectorAll('[data-im]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await post('post_imgnew',{id:b.dataset.im});alert(r.ok?'Картинка обновлена ✔':'Ошибка: '+(r.error||''));await loadAll()});
+  document.querySelectorAll('[data-vk]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await post('post_vk',{id:b.dataset.vk});alert(r.ok?'Опубликовано в VK ✔':'Ошибка: '+(r.error||''));await loadAll()});
+  document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=async()=>{
+    const p=lastPosts.find(x=>x.id==b.dataset.ed);
+    const t=prompt('Текст поста:',p.text);if(t===null)return;
+    await post('post_text',{id:p.id,text:t});await loadAll()});
+  document.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{
+    const p=lastPosts.find(x=>x.id==b.dataset.dl);
+    const blob=new Blob([p.text],{type:'text/plain;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='post_'+p.date+'.txt';a.click();});
+  document.querySelectorAll('[data-dx]').forEach(b=>b.onclick=async()=>{if(!confirm('Удалить?'))return;b.disabled=true;await post('post_del',{id:b.dataset.dx});await loadAll()});
+}
+
+/* ---------- ЗАГРУЗКА ОДНИМ ЗАПРОСОМ ---------- */
+async function loadAll(){
+  try{
+    const p=await (await fetch('api.php?action=ping')).json();
+    if(!p.auth){ location.href='index.html'; return; }
+    const o=openState();
+    const d=await getJSON('smm_all');
+    const q=(d.prompts&&d.prompts.queue)||[];
+    $('qCnt').textContent='В очереди: '+q.length;
+    $('qCnt2').textContent=q.length;
+    renderQueue(q);
+    $('styleText').value=(d.prompts&&d.prompts.style_text)||'';
+    $('styleImg').value=(d.prompts&&d.prompts.style_img)||'';
+    renderWeek(d.prompts?d.prompts.week:null);
+    $('genInfo').textContent='Последняя генерация: '+((d.prompts&&d.prompts.last_gen)||'—');
+    lastPosts=d.posts||[];
+    renderPosts(lastPosts);
+    applyOpen(o);
+  }catch(e){
+    alert('Ошибка загрузки: '+e.message);
+  }
+}
+
+$('bulkSave').onclick=async()=>{
+  const btn=$('bulkSave'); btn.disabled=true;
+  try{
+    const lines=$('bulkPrompts').value.split('\n').map(s=>s.trim()).filter(s=>s);
+    if(!lines.length){ alert('Список пуст — вставь промты'); return; }
+    const have=new Set(lastQueue.map(p=>p.text));
+    const fresh=lines.filter(l=>!have.has(l));
+    if(!fresh.length){ alert('Эти промты уже в очереди — дубли не добавляю.'); $('bulkPrompts').value=''; return; }
+    const r=await post('prompts_bulk',{text:fresh.join('\n')});
+    if(r.ok){ alert('Добавлено: '+r.added+'. В очереди: '+r.count); $('bulkPrompts').value=''; await loadAll(); }
+    else alert('Ошибка: '+(r.error||'неизвестная'));
+  } finally { btn.disabled=false; }
+};
+$('queueClear').onclick=async()=>{ if(!confirm('Очистить всю очередь?'))return; $('queueClear').disabled=true; await post('prompts_clear',{}); await loadAll(); };
+$('styleSave').onclick=async()=>{ $('styleSave').disabled=true; await post('style_set',{style_text:$('styleText').value,style_img:$('styleImg').value}); alert('Стиль сохранён ✔'); $('styleSave').disabled=false; };
+$('autoSave').onclick=async()=>{ $('autoSave').disabled=true; await post('auto_set',{week:weekData}); alert('Расписание сохранено ✔'); await loadAll(); };
+$('genNow').onclick=async()=>{ $('genNow').disabled=true; const r=await post('post_gen',{}); alert(r.ok?'Пост создан и отправлен в Telegram ✔':'Ошибка: '+(r.error||'нет промтов')); await loadAll(); };
+$('makePost').onclick=async()=>{
+  const tp=$('mTextPrompt').value.trim(), ip=$('mImgPrompt').value.trim();
+  if(!tp&&!ip)return alert('Заполни хотя бы один промт');
+  $('makePost').disabled=true;
+  const r=await post('post_make',{tp:tp,ip:ip});
+  alert(r.ok?'Готовый пост собран ✔':'Ошибка: '+(r.error||''));
+  if(r.ok){$('mTextPrompt').value='';$('mImgPrompt').value='';}
+  $('makePost').disabled=false;
+  await loadAll();
+};
+$('postAdd').onclick=async()=>{
+  const t=$('postTxt').value.trim();if(!t)return alert('Введи текст');
+  $('postAdd').disabled=true;
+  let img=null;
+  const f=$('postImg').files[0];
+  if(f){const fd=new FormData();fd.append('file',f);
+    const r=await fetch('api.php?action=post_img',{method:'POST',body:fd}).then(r=>r.json());
+    if(r.ok)img=r.name;}
+  await post('post_add',{text:t,img:img,prompt:'вручную'});
+  $('postTxt').value='';$('postImg').value='';
+  $('postAdd').disabled=false;
+  await loadAll();
+};
+loadAll();
+setInterval(loadAll,90000);
+</script>
+</body>
+</html>
