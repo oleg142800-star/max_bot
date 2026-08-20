@@ -323,7 +323,7 @@ function chat_charge_extra($k,$reply){ global $ADMIN_FREE; $extra=(max(1,intval(
 
 /* ---------- VK ---------- */
 function vk_call_t($token,$m,$p=[]){ $p['access_token']=$token; $p['v']='5.131'; $ch=curl_init('https://api.vk.com/method/'.$m.'?'.http_build_query($p)); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>30,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_IPRESOLVE=>CURL_IPRESOLVE_V4]); $r=curl_exec($ch); curl_close($ch); return json_decode($r,true); }
-function vk_album_id()
+function vk_album_id(){
   global $CFG;
   $f=STOR.'/vk_album.txt'; $id=trim((string)@file_get_contents($f));
   if($id!=='') return $id;
