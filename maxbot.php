@@ -853,44 +853,86 @@ function vk_test($to, $k) {
     $rep .= "\n4) Ссылка‑превью: " . (isset($r4['response']['post_id']) ? "✅ пост #" . $r4['response']['post_id'] : "❌ " . ($r4['error']['error_msg'] ?? ''));
     max_send($to, $rep);
 }
-
-function max_vk_publish($post) {
-    global $CFG;
-    $tok = trim((string)($CFG['vk_user_token'] ?? ''));
-    if ($tok !== '') {
-        $att = '';
-        if (!empty($post['img']) && is_file(IMGDIR . '/' . $post['img'])) {
-            $gid = abs(intval($CFG['vk_owner'] ?? 0));
-            $q = ['v' => '5.131'];
-            if ($gid) $q['group_id'] = $gid;
-            $r = vk_call_t($tok, 'photos.getWallUploadServer', $q);
-            $up_url = $r['response']['upload_url'] ?? null;
-            if ($up_url) {
-                $ch = curl_init($up_url);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => 1,
-                    CURLOPT_POST => 1,
-                    CURLOPT_TIMEOUT => 90,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                    CURLOPT_POSTFIELDS => ['photo' => new CURLFile(IMGDIR . '/' . $post['img'])]
-                ]);
-                $up = json_decode((string)curl_exec($ch), true);
-                curl_close($ch);
-                if (isset($up['photo'])) {
-                    $s = vk_call_t($tok, 'photos.saveWallPhoto', ['photo' => $up['photo'], 'server' => $up['server'] ?? '', 'hash' => $up['hash'] ?? '']);
-                    $ph = $s['response'][0] ?? null;
-                    if ($ph) $att = 'photo' . $ph['owner_id'] . '_' . $ph['id'];
-                }
-            }
+function max_vk_publish($post){
+  global $CFG;
+  
+  // Сначала пробуем загрузить фото через альбом
+  $att = '';
+  if(!empty($post['img']) && is_file(IMGDIR.'/'.$post['img'])){
+    $gid = abs(intval($CFG['vk_owner']??0));
+    if($gid > 0){
+      // Пробуем загрузить в альбом
+      $att = vk_upload_album(IMGDIR.'/'.$post['img']);
+      
+      // Если альбом не работает — пробуем через стену (только с токеном пользователя)
+      if($att === '' && !empty($CFG['vk_user_token'])){
+        $tok = trim($CFG['vk_user_token']);
+        $q = ['v'=>'5.131'];
+        if($gid) $q['group_id'] = $gid;
+        $r = vk_call_t($tok, 'photos.getWallUploadServer', $q);
+        $up_url = $r['response']['upload_url'] ?? null;
+        if($up_url){
+          $ch = curl_init($up_url);
+          curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_POST => 1,
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_SSL_VERIFYPEER => 0,
+            CURLOPT_POSTFIELDS => ['photo' => new CURLFile(IMGDIR.'/'.$post['img'])]
+          ]);
+          $up = json_decode(curl_exec($ch), true);
+          curl_close($ch);
+          if(isset($up['photo'])){
+            $s = vk_call_t($tok, 'photos.saveWallPhoto', [
+              'photo' => $up['photo'],
+              'server' => $up['server'] ?? '',
+              'hash' => $up['hash'] ?? ''
+            ]);
+            $ph = $s['response'][0] ?? null;
+            if($ph) $att = 'photo'.$ph['owner_id'].'_'.$ph['id'];
+          }
         }
-        $wp = ['message' => $post['text'], 'from_group' => 1];
-        if ($CFG['vk_owner']) $wp['owner_id'] = -abs(intval($CFG['vk_owner']));
-        if ($att !== '') $wp['attachments'] = $att;
-        $r3 = vk_call_t($tok, 'wall.post', $wp);
-        if (isset($r3['response']['post_id'])) {
-            return ['ok' => true, 'photo' => $att !== '' ? 1 : 0];
-        }
-        return ['error' => $r3['error']['error_msg'] ?? 'vk error'];
+      }
+    }
+  }
+  
+  // Если фото загрузилось — публикуем с фото
+  $wp = ['message' => $post['text'], 'from_group' => 1];
+  if($CFG['vk_owner']) $wp['owner_id'] = -abs(intval($CFG['vk_owner']));
+  if($att !== '') $wp['attachments'] = $att;
+  
+  // Пробуем публиковать с токеном пользователя (если есть)
+  if(!empty($CFG['vk_user_token'])){
+    $r3 = vk_call_t($CFG['vk_user_token'], 'wall.post', $wp);
+    if(isset($r3['response']['post_id'])) {
+      return ['ok' => true, 'photo' => ($att !== '' ? 1 : 0)];
+    }
+  }
+  
+  // Если не получилось — пробуем токеном группы
+  $r3 = vk_call_t($CFG['vk_token'], 'wall.post', $wp);
+  if(isset($r3['response']['post_id'])) {
+    return ['ok' => true, 'photo' => ($att !== '' ? 1 : 0)];
+  }
+  
+  // Если фото не загрузилось — публикуем как ссылку (костыль)
+  if(!empty($post['img'])){
+    $wp['attachments'] = 'https://gant.testdrive-st.ru/maxbot.php?img='.$post['img'];
+    $r3 = vk_call_t($CFG['vk_token'], 'wall.post', $wp);
+    if(isset($r3['response']['post_id'])) {
+      return ['ok' => true, 'photo' => 2];
+    }
+  }
+  
+  // Если всё сломалось — публикуем только текст
+  unset($wp['attachments']);
+  $r3 = vk_call_t($CFG['vk_token'], 'wall.post', $wp);
+  if(isset($r3['response']['post_id'])) {
+    return ['ok' => true, 'photo' => 0];
+  }
+  
+  return ['error' => $r3['error']['error_msg'] ?? 'vk error'];
+}
     }
     $att = '';
     if (!empty($post['img']) && is_file(IMGDIR . '/' . $post['img'])) $att = vk_upload_album(IMGDIR . '/' . $post['img']);
