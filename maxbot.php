@@ -657,9 +657,7 @@ function on_callback($to,$key,$payload){
   if($act==='txt'){ u_set($k,['fix_id'=>$id]); set_await($k,'fix'); max_send($to,"✏️ Текущий текст поста:\n«".$post['text']."»\n\n✍️ Жду обновлённый текст — пришли его целиком."); return; }
 }
 /* ---------- цикл ---------- */
-$end=time()+50;
-$marker=intval(@file_get_contents(STOR.'/max_marker.txt')?:0);
-while(time()<$end){
+while(true){
   $q=['timeout'=>10]; if($marker>0)$q['marker']=$marker;
   $r=max_req('/updates',$q);
   if($r===null){ sleep(3); continue; }
