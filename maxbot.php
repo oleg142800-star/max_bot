@@ -323,7 +323,7 @@ function chat_charge_extra($k,$reply){ global $ADMIN_FREE; $extra=(max(1,intval(
 
 /* ---------- VK ---------- */
 function vk_call_t($token,$m,$p=[]){ $p['access_token']=$token; $p['v']='5.131'; $ch=curl_init('https://api.vk.com/method/'.$m.'?'.http_build_query($p)); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>1,CURLOPT_TIMEOUT=>30,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_IPRESOLVE=>CURL_IPRESOLVE_V4]); $r=curl_exec($ch); curl_close($ch); return json_decode($r,true); }
-function vk_album_id(){function vk_album_id(){
+function vk_album_id()
   global $CFG;
   $f=STOR.'/vk_album.txt'; $id=trim((string)@file_get_contents($f));
   if($id!=='') return $id;
@@ -616,8 +616,7 @@ function on_message($to,$key,$text,$imgurl=null,$hasatt=false){
   if($mode==='imgadd_desc'){ u_set($k,['await'=>'']); make_img_flow($to,$k,trim($t)); return; }
   if($mode==='text'){ u_set($k,['await'=>'']); make_text_flow($to,$k,$t); return; }
   if($mode==='set_text'){ u_set($k,['await'=>'','style_text'=>$t]); max_send($to,'✅ Сохранил: правило текста заменено полностью!',kb_settings()); return; }
-  if($mode==='set_text_add'){ $old=trim((string)($u['style_text']??  if($mode==='set_text_add'){ $old=trim((string)($u['style_text']??'')); u_set($k,['await'=>'','style_text'=>trim($old.' '.$t)]); max_send($to,'✅ Дописал к правилу текста!',kb_settings()); return; }
-  if($mode==='set_img'){ u_set($k,['await'=>'','style_img'=>$t]); max_send($to,'✅ Сохранил: правило картинки заменено полностью!',kb_settings()); return; }
+  if($mode==='set_text_add'){ $old=trim((string)($u['style_text']??'')); u_set($k,['await'=>'','style_text'=>trim($old.' '.$t)]); max_send($to,'✅ Дописал к правилу текста!',kb_settings()); return; }
   if($mode==='set_img_add'){ $old=trim((string)($u['style_img']??'')); u_set($k,['await'=>'','style_img'=>trim($old.' '.$t)]); max_send($to,'✅ Дописал к правилу картинки!',kb_settings()); return; }
   if($mode==='fix'){ u_set($k,['await'=>'']); $post=p_find($k,$u['fix_id']??''); if($post){ $post['text']=trim($t); p_update($k,$post); send_review($to,$k,$post); max_send($to,'✅ Текст обновлён! Пост выше.'); } return; }
   $want=preg_match('/(хочу|сделай|создай|нарисуй|нужн|давай|сгенерируй|придумай)/iu',$t);
