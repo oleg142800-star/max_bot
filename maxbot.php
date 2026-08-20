@@ -349,19 +349,7 @@ function vk_upload_album($path){
   $ph=$s['response'][0]??null; if(!$ph){ mlog('vk album save: '.mb_substr((string)json_encode($s,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
   return 'photo'.$ph['owner_id'].'_'.$ph['id'];
 }
-function vk_upload_album($path){
-  global $CFG;
-  $gid=abs(intval($CFG['vk_owner']??0)); if(!$gid) return '';
-  $aid=vk_album_id(); if($aid==='') return '';
-  $r=vk_call_t($CFG['vk_token'],'photos.getUploadServer',['album_id'=>$aid,'group_id'=>$gid]);
-  $url=$r['response']['upload_url']??null; if(!$url){ mlog('vk album server: '.mb_substr((string)json_encode($r,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
-  $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>1,CURLOPT_POST=>1,CURLOPT_TIMEOUT=>90,CURLOPT_SSL_VERIFYPEER=>0,CURLOPT_POSTFIELDS=>['file1'=>new CURLFile($path)]]);
-  $up=json_decode((string)curl_exec($ch),true); curl_close($ch);
-  if(!isset($up['server'])){ mlog('vk album upload: '.mb_substr((string)json_encode($up,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
-  $s=vk_call_t($CFG['vk_token'],'photos.save',['server'=>$up['server'],'photos_list'=>$up['photos_list']??'','hash'=>$up['hash']??'','group_id'=>$gid]);
-  $ph=$s['response'][0]??null; if(!$ph){ mlog('vk album save: '.mb_substr((string)json_encode($s,JSON_UNESCAPED_UNICODE),0,200)); return ''; }
-  return 'photo'.$ph['owner_id'].'_'.$ph['id'];
-}
+
 function vk_try_wall($token,$gid,$img){
   if(trim((string)$token)==='') return ['ok'=>false,'err'=>'нет токена'];
   $q=['v'=>'5.131']; if($gid)$q['group_id']=$gid;
@@ -379,6 +367,7 @@ function vk_try_wall($token,$gid,$img){
   if(isset($r3['response']['post_id'])) return ['ok'=>true,'id'=>$r3['response']['post_id']];
   return ['ok'=>false,'err'=>$r3['error']['error_msg']??'wall.post fail'];
 }
+
 function vk_test($to,$k){
   global $CFG;
   $img=null;
@@ -401,6 +390,7 @@ function vk_test($to,$k){
   $rep.="\n4) Ссылка‑превью: ".(isset($r4['response']['post_id'])?"✅ пост #".$r4['response']['post_id']:"❌ ".($r4['error']['error_msg']??''));
   max_send($to,$rep);
 }
+
 
 /* ============================================================
    ИСПРАВЛЕННАЯ ФУНКЦИЯ ПУБЛИКАЦИИ
