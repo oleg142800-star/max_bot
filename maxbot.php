@@ -706,6 +706,7 @@ if($act==='example'){ $desc=implode(':',array_slice($p,1)); make_img_flow($to,$k
   if($act==='txt'){ u_set($k,['fix_id'=>$id]); set_await($k,'fix'); max_send($to,"✏️ Текущий текст поста:\n«".$post['text']."»\n\n✍️ Жду обновлённый текст — пришли его целиком."); return; }
 }
 /* ---------- цикл ---------- */
+$marker = intval(@file_get_contents(STOR.'/max_marker.txt')?:0);
 while(true){
   daily_snapshot();
   $q=['timeout'=>10]; if($marker>0)$q['marker']=$marker;
