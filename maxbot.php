@@ -53,8 +53,7 @@ $STT_ERR='';
 function users_load(){ $f=STOR.'/users.json'; return is_file($f)?(json_decode(file_get_contents($f),true)?:[]):[]; }
 function users_save($u){ file_put_contents(STOR.'/users.json',json_encode($u,JSON_UNESCAPED_UNICODE)); }
 function user_get($k){ $u=users_load(); return $u[$k]??null; }
-function user_ensure($k){ $u=users_load(); if(isset($u[$k])) return false; $u[$k]=['name'=>'Клиент #'.(count($u)+1),'reg'=>date('Y-m-d H:i'),'balance'=>TRIAL,'m_spend'=>[],'posts'=>0,'images'=>0,'tokens_in'=>0,'tokens_out'=>0,'img_in'=>0,'img_out'=>0,'cost'=>0,'blocked'=>0,'style_text'=>'','style_img'=>'','await'=>'','await_t'=>0,'chat_q'=>'','chat_a'=>'','edit_img'=>'','edit_desc'=>'','log'=>[],'via'=>'max']; users_save($u); notify_admin('🆕 Новый клиент: '.$u[$k]['name'].' ('.$k.'). Стартовый баланс '.TRIAL.' ₽.'); return true; }
-function u_set($k,$d){ $u=users_load(); if(!isset($u[$k]))return; foreach($d as $a=>$b)$u[$k][$a]=$b; users_save($u); }
+function user_ensure($k){ $u=users_load(); if(isset($u[$k])) return false; $u[$k]=['name'=>'Клиент #'.(count($u)+1),'reg'=>date('Y-m-d H:i'),'balance'=>TRIAL,'m_spend'=>[],'posts'=>0,'images'=>0,'tokens_in'=>0,'tokens_out'=>0,'img_in'=>0,'img_out'=>0,'cost'=>0,'blocked'=>0,'style_text'=>'','style_img'=>'','await'=>'','await_t'=>0,'chat_q'=>'','chat_a'=>'','edit_img'=>'','edit_desc'=>'','log'=>[],'via'=>'max']; users_save($u); notify_admin('🆕 Новый клиент: '.$u[$k]['name'].' ('.$k.'). Стартовый баланс '.TRIAL.' ₽.'); $welcome="👋 Привет! Я Postli — ИИ-помощник для соцсетей.\n\nЧто умею:\n✨ Создавать посты с текстом и картинкой\n✨ Рисовать изображения по описанию\n✨ Писать тексты и отвечать на вопросы\n✨ Генерировать хештеги и контент-планы\n\n💰 На старт начислил ".TRIAL." ₽ — хватит на пару постов!\n\nДавай начнём — выбери, что сделать:"; max_send(['user_id'=>substr($k,1)],$welcome,kb_menu(0)); return true; }
 function set_await($k,$mode){ u_set($k,['await'=>$mode,'await_t'=>time()]); }
 function u_log($k,$m,$c=0){ $u=users_load(); if(!isset($u[$k]))return; $u[$k]['log']=array_slice(array_merge([[date('m-d H:i').' '.$m]],$u[$k]['log']??[]),0,40); if($c>0)$u[$k]['cost']=round(($u[$k]['cost']??0)+$c,2); users_save($u); $d=STOR.'/logs'; if(!is_dir($d))@mkdir($d,0777,true); @file_put_contents($d.'/'.date('Y-m').'.jsonl',json_encode(['t'=>date('Y-m-d H:i:s'),'u'=>$k,'n'=>$u[$k]['name']??'','m'=>$m,'bal'=>round($u[$k]['balance']??0,2)],JSON_UNESCAPED_UNICODE)."\n",FILE_APPEND|LOCK_EX); }
 function daily_snapshot(){ $d=STOR.'/snapshots'; if(!is_dir($d))@mkdir($d,0777,true); $f=$d.'/'.date('Y-m-d').'.json'; if(!is_file($f))@copy(STOR.'/users.json',$f); }
@@ -287,12 +286,38 @@ function b_msg($t){ return ['type'=>'message','text'=>$t]; }
 
 function kb_menu($admin){
   $rows=[
-    [b_msg('📝 Создать пост'), b_msg('🖼 Картинку')],
-    [b_msg('✍️ Текст'), b_msg('❓ Спросить у ИИ')],
-    [b_msg('⚙️ Настройки'), b_msg('💰 Баланс')]
+    [b_msg('📝 Создать пост'), b_msg('🖼 Картинка')],
+    [b_msg('✍️ Текст'), b_msg('💬 Чат с ИИ')],
+    [b_msg('📚 Мои работы'), b_msg('⚙️ Настройки')]
   ];
   if($admin) $rows[]=[b_msg('👥 Клиенты'), b_msg('🧪 Тест VK')];
   return max_kb($rows);
+}
+
+function kb_submenu_post(){
+  return max_kb([
+    [b_msg('🎯 Готовый пост'), b_msg('🧠 Агентство')],
+    [b_msg('✍️ Только текст'), b_msg('💡 Идеи тем')],
+    [b_msg('🏠 Главная')]
+  ]);
+}
+
+function kb_submenu_img(){
+  return max_kb([
+    [b_msg('🎨 С нуля'), b_msg('📸 Из моего фото')],
+    [b_msg('💡 Примеры')],
+    [b_msg('🏠 Главная')]
+  ]);
+}
+
+function kb_submenu_settings(){
+  return max_kb([
+    [b_msg('💰 Баланс'), b_msg('💳 Пополнить')],
+    [b_msg('📏 Стиль текста'), b_msg('🖼 Стиль картинок')],
+    [b_msg('💳 Тарифы'), b_msg('📄 Документы')],
+    [b_msg('🏠 Главная')]
+  ]);
+}
 }
 function kb_settings(){ return max_kb([[b_msg('📏 Правило текста'),b_msg('🖼 Правило картинки')],[b_msg('💳 Тарифы'),b_msg('💰 Баланс')],[b_msg('💳 Пополнить'),b_msg('📋 Меню')]]); }
 function kb_chat(){ return max_kb([[b_msg('📋 Меню'),b_msg('💬 Продолжить')]]); }
@@ -495,7 +520,7 @@ function send_review($to,$k,$post){
   $rows=[];
   if($ADMIN_FREE) $rows[]=[b_cb('✅ В VK','ok:'.$post['id'])];
   $rows[]=[b_cb('✏️ Поправить','txt:'.$post['id']),b_cb('🖼 Новая картинка','img:'.$post['id'])];
-  $rows[]=[b_cb('❌ Отклонить','no:'.$post['id'])];
+  $rows[]=[b_cb('#️⃣ Хештеги','hash:'.$post['id']),b_cb('❌ Отклонить','no:'.$post['id'])];
   $att[]=['type'=>'inline_keyboard','payload'=>['buttons'=>$rows]];
   max_send($to,$cap."\n\n— Согласуем? —",$att);
 }
@@ -582,7 +607,21 @@ function on_message($to,$key,$text,$imgurl=null,$hasatt=false){
   if($ADMIN_FREE&&($t==='👥 Клиенты'||stripos($t,'/users')===0)){ u_set($k,['await'=>'']); admin_clients_panel($to); return; }
   if($ADMIN_FREE&&($t==='🧪 Тест VK'||stripos($t,'/vktest')===0)){ u_set($k,['await'=>'']); vk_test($to,$k); return; }
   if($t==='📋 Меню'||mb_strpos($low,'меню')!==false||$low==='привет'||$low==='здравствуй'||stripos($t,'/start')===0){ u_set($k,['await'=>'']); show_menu($to,$k,$ADMIN_FREE); return; }
-  if($t==='⚙️ Настройки'){ u_set($k,['await'=>'']); max_send($to,"⚙️ Настройки\n\n📏 Правило текста — свой стиль постов;\n Правило картинки — свой стиль фото;\n💳 Тарифы — цены;\n💰 Баланс — остаток;\n💳 Пополнить — пополнение счёта.",kb_settings()); return; }
+  // Быстрые команды
+if(preg_match('/^(пост|создать пост)\s+(.+)$/iu',$t,$m)){ make_post_flow($to,$k,$m[2]); return; }
+if(preg_match('/^(картинка|нарисуй)\s+(.+)$/iu',$t,$m)){ make_img_flow($to,$k,$m[2]); return; }
+if($low==='баланс'||$low==='balance'){ $t='💰 Баланс'; }
+if($low==='история'||$low==='мои работы'){ $t='📚 Мои работы'; }
+if($low==='тарифы'||$low==='цены'){ $t='💳 Тарифы'; }
+  if($t==='⚙️ Настройки'){ u_set($k,['await'=>'']); max_send($to,'⚙️ Настройки',kb_submenu_settings()); return; }
+if($t==='📚 Мои работы'){ $posts=p_load($k); if(empty($posts)){ max_send($to,'📚 Мои работы\n\nПока пусто — создай первый пост!',kb_menu($ADMIN_FREE)); return; } $txt="📚 Мои работы (последние 5):\n\n"; $i=0; foreach($posts as $p){ if($i>=5) break; $i++; $date=substr($p['id'],0,2).'.'.substr($p['id'],2,2); $title=mb_substr($p['prompt']?:$p['text'],0,40); $txt.="$i) [$date] \"$title\"\n"; } max_send($to,$txt,kb_menu($ADMIN_FREE)); return; }
+if($t==='🏠 Главная'){ u_set($k,['await'=>'']); show_menu($to,$k,$ADMIN_FREE); return; }
+  if($t==='💰 Баланс'){ $t='💰 Баланс'; }
+if($t==='💳 Пополнить'){ /* уже есть обработчик ниже */ }
+if($t==='📏 Стиль текста'){ $t='📏 Правило текста'; }
+if($t==='🖼 Стиль картинок'){ $t='🖼 Правило картинки'; }
+if($t==='💳 Тарифы'){ max_send($to,prices_txt(),kb_submenu_settings()); return; }
+if($t==='📄 Документы'){ max_send($to,"📄 Документы\n\nОферта: https://postli.ru/oferta\nПолитика конфиденциальности: https://postli.ru/privacy",kb_submenu_settings()); return; }
   if($t==='💳 Тарифы'){ max_send($to,prices_txt(),kb_settings()); return; }
   if($t==='💳 Пополнить'){
     if(yk_on()){ set_await($k,'pay'); max_send($to,'💳 Сколько пополнить? Напиши сумму (50–15000 ₽) или нажми кнопку.',max_kb([[b_msg('100'),b_msg('300')],[b_msg('500'),b_msg('1000')]])); }
@@ -592,8 +631,15 @@ function on_message($to,$key,$text,$imgurl=null,$hasatt=false){
   if($t==='📏 Правило текста'){ $cur=trim((string)($u['style_text']??'')); set_await($k,'set_text'); max_send($to," Сейчас правило текста такое:\n«".($cur!==''?$cur:'— не задано —')."»\n\n✍️ Пришли новый текст — он ПОЛНОСТЬЮ заменит правило. Или нажми кнопку.",max_kb([[b_cb('➕ Дописать к старому','add:text'),b_cb('🗑 Удалить','del:text')]])); return; }
   if($t==='🖼 Правило картинки'){ $cur=trim((string)($u['style_img']??'')); set_await($k,'set_img'); max_send($to," Сейчас правило картинки такое:\n«".($cur!==''?$cur:'— не задано —')."»\n\n✍️ Пришли новый текст — он ПОЛНОСТЬЮ заменит правило. Или нажми кнопку.",max_kb([[b_cb('➕ Дописать к старому','add:img'),b_cb(' Удалить','del:img')]])); return; }
   if($t==='💰 Баланс'){ u_set($k,['await'=>'']); $mo=date('Y-m'); max_send($to,"💰 Баланс: ".number_format($u['balance']??0,2)." ₽\n• потрачено за месяц: ".number_format($u['m_spend'][$mo]??0,2)." ₽\n• постов: ".($u['posts']??0)." · картинок: ".($u['images']??0),kb_menu($ADMIN_FREE)); return; }
-  if($t==='📝 Создать пост'){ set_await($k,'post'); max_send($to,'✍️ Опиши, про что будет пост — я создам текст и картинку. (20 ₽'.($ADMIN_FREE?' — тебе бесплатно':'').')'); return; }
-  if($t==='🖼 Картинку'){ set_await($k,'img'); max_send($to,"🖼 Опиши, что нарисовать — нарисую с нуля (10 ₽).\nИли пришли СВОЁ фото вместе с описанием, что изменить — разгляжу и сделаю похожего (20 ₽).".($ADMIN_FREE?' Тебе бесплатно.':'')); return; }
+  if($t==='📝 Создать пост'){ u_set($k,['await'=>'']); max_send($to,'📝 Создание поста\n\nВыбери вариант:',kb_submenu_post()); return; }
+if($t==='🎯 Готовый пост'){ set_await($k,'post'); max_send($to,'✍️ Опиши, про что будет пост — я создам текст и картинку. (20 ₽'.($ADMIN_FREE?' — тебе бесплатно':'').')'); return; }
+if($t==='✍️ Только текст'){ set_await($k,'text'); max_send($to,'✍️ Укажи тему — напишу текст поста. (10 ₽'.($ADMIN_FREE?' — тебе бесплатно':'').')'); return; }
+if($t==='💡 Идеи тем'){ set_await($k,'ideas_topic'); max_send($to,'💡 Идеи тем\n\nНапиши направление (например: "кофейня", "фитнес", "рецепты") — я предложу 5 актуальных тем для постов.'); return; }
+if($t==='🧠 Агентство'){ max_send($to,'🧠 Агентство\n\nЭта функция скоро появится — генерация 5 постов на неделю за 90 ₽.\n\nПока можешь создать посты по одному через «🎯 Готовый пост».',kb_submenu_post()); return; }
+  if($t==='🖼 Картинка'){ u_set($k,['await'=>'']); max_send($to,'🖼 Создание картинки\n\nВыбери вариант:',kb_submenu_img()); return; }
+if($t==='🎨 С нуля'){ set_await($k,'img'); max_send($to,'🎨 Опиши, что нарисовать (10 ₽'.($ADMIN_FREE?' — тебе бесплатно':'').')'); return; }
+if($t==='📸 Из моего фото'){ set_await($k,'imgedit'); max_send($to,'📸 Пришли своё фото и опиши, что с ним сделать. (20 ₽'.($ADMIN_FREE?' — тебе бесплатно':'').')'); return; }
+if($t==='💡 Примеры'){ set_await($k,'examples_topic'); max_send($to,'💡 Примеры для вдохновения\n\nНапиши направление (например: "животные", "еда", "техника") — я предложу 5 идей для картинок.'); return; }
   if($t==='✍️ Текст'){ set_await($k,'text'); max_send($to,'✍️ Укажи тему — напишу текст поста. (10 ₽'.($ADMIN_FREE?' — тебе бесплатно':'').')'); return; }
   if($t==='❓ Спросить у ИИ'||$t==='❓ Спросить'||$t==='❓ Поговорить'){ u_set($k,['await'=>'']); max_send($to,'❓ Слушаю! Напиши вопрос — отвечу подробно (от 2000 знаков). (3 ₽/1000 знаков'.($ADMIN_FREE?', тебе бесплатно':'').')',kb_chat()); return; }
   if($t==='💬 Продолжить'){
@@ -616,6 +662,8 @@ function on_message($to,$key,$text,$imgurl=null,$hasatt=false){
   }
   $mode=$u['await']??'';
   if($mode!==''&&time()-intval($u['await_t']??0)>600){ u_set($k,['await'=>'']); $mode=''; }
+  if($mode==='ideas_topic'){ u_set($k,['await'=>'ideas_wait']); max_send($to,'🤔 Генерирую 5 идей тем...'); $r=ai_call([['role'=>'system','content'=>'Ты — SMM-специалист. Сгенерируй 5 актуальных тем для постов в соцсетях по заданному направлению. Формат: нумерованный список, каждая тема — 1 строка, без пояснений.'],['role'=>'user','content'=>'Направление: '.$t]],500); if($r['text']!==null){ $lines=array_filter(explode("\n",$r['text'])); $buttons=[]; foreach($lines as $i=>$line){ if($i>=5) break; $clean=trim(preg_replace('/^\d+[\.\)]\s*/','',$line)); if($clean!=='') $buttons[]=[b_cb(mb_substr($clean,0,30),'idea:'.$clean)]; } max_send($to,"💡 Вот 5 идей тем:\n\n".$r['text']."\n\nВыбери тему — создам пост:",max_kb($buttons)); } else { max_send($to,'⚠️ Не смог сгенерировать идеи — попробуй ещё раз.',kb_submenu_post()); } return; }
+if($mode==='examples_topic'){ u_set($k,['await'=>'examples_wait']); max_send($to,'🎨 Генерирую 5 идей для картинок...'); $r=ai_call([['role'=>'system','content'=>'Ты — арт-директор. Сгенерируй 5 креативных идей для картинок по заданному направлению. Формат: нумерованный список, каждая идея — 1 строка, без пояснений.'],['role'=>'user','content'=>'Направление: '.$t]],500); if($r['text']!==null){ $lines=array_filter(explode("\n",$r['text'])); $buttons=[]; foreach($lines as $i=>$line){ if($i>=5) break; $clean=trim(preg_replace('/^\d+[\.\)]\s*/','',$line)); if($clean!=='') $buttons[]=[b_cb(mb_substr($clean,0,30),'example:'.$clean)]; } max_send($to,"💡 Вот 5 идей для картинок:\n\n".$r['text']."\n\nВыбери идею — нарисую:",max_kb($buttons)); } else { max_send($to,'⚠️ Не смог сгенерировать идеи — попробуй ещё раз.',kb_submenu_img()); } return; }
   if($mode==='pay'){ if(preg_match('/^\d{2,5}$/',$t)){ $sum=intval($t); if($sum>=50&&$sum<=15000){ u_set($k,['await'=>'']); $url=yk_create($sum,$k,$to); if($url){ max_send($to,"💳 К оплате ".$sum." ₽ — открой ссылку и оплати картой или через СБП:\n".$url); } else { max_send($to,'⚠️ Касса временно недоступна — напиши администратору.'); } return; } max_send($to,'Минимум 50 ₽, максимум 15000 ₽ — попробуй ещё раз.'); return; } u_set($k,['await'=>'']); max_send($to,'Напиши сумму числом от 50 до 15000 ₽.'); return; }
   if($mode==='post'){ u_set($k,['await'=>'']); make_post_flow($to,$k,$t); return; }
   if($mode==='img'){ u_set($k,['await'=>'']); make_img_flow($to,$k,$t); return; }
@@ -648,6 +696,9 @@ function on_callback($to,$key,$payload){
   if($ADMIN_FREE&&$act==='aadd'){ $id=$p[1]??''; $sum=intval($p[2]??0); $x=user_get($id); if(!$x)return; u_set($id,['balance'=>round(($x['balance']??0)+$sum,2)]); u_log($id,'💳 Пополнение (+'.$sum.' ₽)'); max_send($to,'✅ '.($x['name']??$id).': +'.$sum.' ₽, теперь '.number_format(($x['balance']??0)+$sum,2).' ₽.'); return; }
   if($act==='add'){ $w=$p[1]??''; if($w==='text'){ set_await($k,'set_text_add'); max_send($to,'✍️ Пришли, что дописать к правилу текста.'); } else { set_await($k,'set_img_add'); max_send($to,'️ Пришли, что дописать к правилу картинки.'); } return; }
   if($act==='del'){ $w=$p[1]??''; if($w==='text'){ u_set($k,['style_text'=>'']); max_send($to,'🗑 Правило текста удалено — будет стандартный стиль.',kb_settings()); } else { u_set($k,['style_img'=>'']); max_send($to,'🗑 Правило картинки удалено — будет стандартный стиль.',kb_settings()); } return; }
+  if($act==='idea'){ $topic=implode(':',array_slice($p,1)); make_post_flow($to,$k,$topic); return; }
+if($act==='example'){ $desc=implode(':',array_slice($p,1)); make_img_flow($to,$k,$desc); return; }
+  if($act==='hash'){ $id=$p[1]??''; $post=p_find($k,$id); if(!$post) return; if(!u_charge($k,PRICE_CHAT_1K,'Хештеги')){ max_send($to,u_nofunds($k)); return; } max_send($to,'#️⃣ Генерирую хештеги...'); $r=ai_call([['role'=>'system','content'=>'Сгенерируй 10-15 релевантных хештегов для поста. Формат: #хештег1 #хештег2 ... (через пробел, с решёткой).'],['role'=>'user','content'=>$post['text']]],300); if($r['text']!==null){ max_send($to,"#️⃣ Хештеги для поста:\n\n".$r['text']); } else { u_refund($k,PRICE_CHAT_1K,'Хештеги'); max_send($to,'⚠️ Не смог сгенерировать хештеги, деньги вернул.'); } return; }
   if($act==='img2'){ $desc=implode(':',array_slice($p,1)); make_img_flow($to,$k,$desc); return; }
   if($act==='imgadd'){ $desc=implode(':',array_slice($p,1)); u_set($k,['edit_desc'=>$desc]); set_await($k,'imgadd_desc'); max_send($to,"📝 Текущее описание:\n".$desc); max_send($to,'✍️ Скопируй текст выше, дополни его и пришли целиком — я нарисую заново (10 ₽'.($ADMIN_FREE?' — бесплатно':'').').'); return; }
   $post=p_find($k,$id); if(!$post) return;
